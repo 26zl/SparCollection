@@ -1,15 +1,17 @@
-name: Build & deploy Python Azure Functions (Y1)
+name: Build & Deploy Azure Functions (Python Y1 via ZipDeploy)
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'azure_functions/**'
+      - '.github/workflows/main_sparcollection-azfunc.yml'
   workflow_dispatch:
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'azure_functions'
   PYTHON_VERSION: '3.10'
+  FUNC_APP_NAME: 'sparcollection-azfuncy1'  
 
 jobs:
   build:
@@ -29,7 +31,7 @@ jobs:
           source venv/bin/activate
           pip install -r ${AZURE_FUNCTIONAPP_PACKAGE_PATH}/requirements.txt
 
-      - name: Zip Functions
+      - name: Create Zip (Functions)
         run: |
           cd ${AZURE_FUNCTIONAPP_PACKAGE_PATH}
           zip -qr ../azure_functions-release.zip .
@@ -38,7 +40,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: functions-app
+          name: functions-zip
           path: azure_functions-release.zip
 
   deploy:
@@ -48,12 +50,12 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: functions-app
+          name: functions-zip
 
-      - name: Deploy to Azure Functions
-        uses: Azure/functions-action@v1
+      - name: Deploy to Azure Function App (ZipDeploy)
+        uses: azure/webapps-deploy@v3
         with:
-          app-name: 'sparcollection-azfuncy1'      
-          package: azure_functions-release.zip
-
+          app-name: ${{ env.FUNC_APP_NAME }}
+          slot-name: Production
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS }}
+          package: azure_functions-release.zip
