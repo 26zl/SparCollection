@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import azure.functions as func
 
-from shared_code import load_json, persist_json
+from shared_code import load_json, persist_json, publish_event
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -31,6 +31,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         if isinstance(payload, dict) and payload.get("completed_by"):
             shopping_list["completed_by"] = str(payload["completed_by"])
         persist_json("lists.json", lists)
+        publish_event(
+            {
+                "type": "list-completed",
+                "listId": list_id,
+                "status": shopping_list["status"],
+                "completedAt": shopping_list["completed_at"],
+                "completedBy": shopping_list.get("completed_by"),
+            }
+        )
         return func.HttpResponse(
             body=json.dumps({"queued": True, "listId": list_id}),
             mimetype="application/json",

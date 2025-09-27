@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import azure.functions as func
 
-from shared_code import load_json, persist_json
+from shared_code import load_json, persist_json, publish_event
 
 ALLOWED_FIELDS = {"status", "qty"}
 
@@ -48,6 +48,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             item.update(update_fields)
             item["version"] = int(item.get("version", 0)) + 1
             persist_json("lists.json", lists)
+            publish_event(
+                {
+                    "type": "item-updated",
+                    "listId": list_id,
+                    "itemId": item_id,
+                    "changes": update_fields,
+                    "version": item["version"],
+                }
+            )
             return func.HttpResponse(body=json.dumps(item), mimetype="application/json")
 
     return func.HttpResponse(
