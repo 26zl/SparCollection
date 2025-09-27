@@ -38,7 +38,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: functions-zip
-          name: functions-zip
           path: azure_functions-release.zip
 
   deploy:
@@ -55,4 +54,5 @@ jobs:
           app-name: ${{ env.FUNC_APP_NAME }}
           slot-name: Production
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS }}
+
           package: azure_functions-release.zip
