@@ -20,6 +20,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -61,5 +63,5 @@ jobs:
         with:
           app-name: ${{ env.WEBAPP_NAME }}
           slot-name: Production
-          publish-profile: ${{ secrets.APPLICATION_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9C1E2BCFB3124D8789D405CF06D7C9F3 }}
           package: release.zip
