@@ -29,10 +29,6 @@
 - API (Azure Functions): <https://sparcollection-azfunc-fffjcpb5cphnfhac.northeurope-01.azurewebsites.net/api>
 - Service Bus: queue `list-updates` (krever `SERVICEBUS_CONNECTION` og valgfritt `SERVICEBUS_QUEUE_NAME` i Function App settings).
 
-# GitHub-secrets
-
-- `APPLICATION_PUBLISH_PROFILE` – publish profile for App Service (frontend).
-- `AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS` – publish profile for Function App (API).
 
 # Deploy
 
