@@ -58,7 +58,7 @@ jobs:
         uses: Azure/functions-action@v1
         id: deploy-to-function
         with:
-          app-name: 'sparcollection-azfunc-fffjcpb5cphnfhac'
+          app-name: 'sparcollection-azfunc'
           slot-name: 'Production'
           package: azure_functions-release.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1B4D64B0DA7A426DB840FFB7B3DF962E }}
