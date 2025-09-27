@@ -1,58 +1,75 @@
-name: Build & Deploy Azure Functions (Python Y1 via ZipDeploy)
+# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+# More info on Python, GitHub Actions, and Azure Functions: https://aka.ms/python-webapps-actions
+
+name: Build and deploy Python project to Azure Function App - sparcollection-azfunc
 
 on:
   push:
-    branches: [ main ]
-    paths:
-      - 'azure_functions/**'
-      - '.github/workflows/main_sparcollection-azfunc.yml'
+    branches:
+      - main
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: 'azure_functions'
-  PYTHON_VERSION: '3.10'
-  FUNC_APP_NAME: 'sparcollection-azfuncy1'  
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
+  PYTHON_VERSION: '3.12' # set this to the python version to use (supports 3.6, 3.7, 3.8)
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    permissions:
+      contents: read #This is required for actions/checkout
 
-      - uses: actions/setup-python@v5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python version
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install deps
+      - name: Create and start virtual environment
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install -r ${AZURE_FUNCTIONAPP_PACKAGE_PATH}/requirements.txt
 
-      - name: Create Zip (Functions)
-        run: |
-          cd ${AZURE_FUNCTIONAPP_PACKAGE_PATH}
-          zip -qr ../azure_functions-release.zip .
-          cd -
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - uses: actions/upload-artifact@v4
+      # Optional: Add step to run tests here
+
+      - name: Zip artifact for deployment
+        run: zip release.zip ./* -r
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
         with:
-          name: functions-zip
-          path: azure_functions-release.zip
+          name: python-app
+          path: |
+            release.zip
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
         with:
-          name: functions-zip
+          name: python-app
 
-      - name: Deploy to Azure Function App (ZipDeploy)
-        uses: azure/webapps-deploy@v3
+      - name: Unzip artifact for deployment
+        run: |
+          unzip release.zip
+          rm release.zip
+        
+      - name: 'Deploy to Azure Functions'
+        uses: Azure/functions-action@v1
+        id: deploy-to-function
         with:
-          app-name: ${{ env.FUNC_APP_NAME }}
-          slot-name: Production
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS }}
-
-          package: azure_functions-release.zip
+          app-name: 'sparcollection-azfunc'
+          slot-name: 'Production'
+          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1B4D64B0DA7A426DB840FFB7B3DF962E }}
