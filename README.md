@@ -21,12 +21,23 @@
 # Produksjonsbygg
 
 - Kjør `npm run build` i repo-roten. Scriptet kjører `npm ci` og `npm run build` inne i `frontend/` og resultatet havner i `frontend/dist/`.
-- Arbeidsflyten `webapp-deploy.yml` gjør det samme i GitHub Actions og pakker innholdet i `frontend/dist/` til `release.zip`.
+- GitHub Actions-workflowen `main_sparcollection-web.yml` gjør det samme i CI før det pakkes til `release.zip`.
+
+# Produksjonsdrift
+
+- Frontend (SPA): <https://sparcollection-web-faasfhqd6lxhbasgn.northeurope-01.azurewebsites.net>
+- API (Azure Functions): <https://sparcollection-azfunc-fffjcpb5cphnfhac.northeurope-01.azurewebsites.net/api>
+- Service Bus: queue `list-updates` (krever `SERVICEBUS_CONNECTION` og valgfritt `SERVICEBUS_QUEUE_NAME` i Function App settings).
+
+# GitHub-secrets
+
+- `APPLICATION_PUBLISH_PROFILE` – publish profile for App Service (frontend).
+- `AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS` – publish profile for Function App (API).
 
 # Deploy
 
-- App Service publish profile legges i secret `APPLICATION_PUBLISH_PROFILE`.
-- `webapp-deploy.yml` bygger med `VITE_API_URL=https://sparcollection-azfunc.azurewebsites.net/api` og ZipDeployer pakker `frontend/dist/` direkte til App Service.
-- Husk å aktivere CORS på Functions-app-en for hostnavnet til App Service.
-
-Backend (Azure Functions) deployes fortsatt via `main_sparcollection-azfunc.yml`.
+- Frontend-workflowen `main_sparcollection-web.yml` bygger Vite med `VITE_API_URL` satt til API-domenet over og ZipDeployer laster opp `frontend/dist/` til App Service.
+- Functions-workflowen `main_sparcollection-azfunc.yml` pakker `azure_functions/` til `azure_functions-release.zip` og deployer til Function App.
+- Sett startup command på App Service til `pm2 serve /home/site/wwwroot --spa --no-daemon` (eller tilsvarende) slik at alle SPA-ruter faller tilbake til `index.html`.
+- Aktiver CORS på Function App for `https://sparcollection-web-faasfhqd6lxhbasgn.northeurope-01.azurewebsites.net`.
+- Legg inn `SERVICEBUS_CONNECTION` og `SERVICEBUS_QUEUE_NAME` i Function App settings (ikke i repo).
