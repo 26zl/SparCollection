@@ -36,13 +36,13 @@ jobs:
 
       - name: Create deployment package
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-        run: zip -r ../functionapp.zip .
+        run: zip -r ../azure_functions-release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: functionapp-package
-          path: functionapp.zip
+          path: azure_functions-release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -58,7 +58,7 @@ jobs:
         uses: Azure/functions-action@v1
         id: deploy-to-function
         with:
-          app-name: 'sparcollection-azfunc'
+          app-name: 'sparcollection-azfunc-fffjcpb5cphnfhac'
           slot-name: 'Production'
-          package: functionapp.zip
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1B4D64B0DA7A426DB840FFB7B3DF962E }}
+          package: azure_functions-release.zip
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS }}
