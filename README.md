@@ -1,32 +1,32 @@
-# Kjøring lokalt
+# Lokal kjøring
 
-API (Azure Functions lokalt)
+1. Start Azure Functions-APIet:
+   ```sh
+   cd azure_functions
+   func start
+   ```
 
-cd azure_functions && func start
+2. Klargjør frontend-variabler. Kopier `.env.example` til f.eks. `frontend/.env.local` og sett
+   ```
+   VITE_API_URL=http://localhost:7071/api
+   ```
+   (Hvis du lar den stå tom, brukes `/api` og Vite-proxyen sender trafikk til Functions på port 7071.)
 
-Frontend dev
+3. Kjør Vite-devserver:
+   ```sh
+   npm --prefix frontend ci
+   npm --prefix frontend run dev
+   ```
 
-cd frontend && npm ci && npm run dev
+# Produksjonsbygg
 
-Prod-lignende server (lokalt)
+- Kjør `npm run build` i repo-roten. Scriptet kjører `npm ci` og `npm run build` inne i `frontend/` og resultatet havner i `frontend/dist/`.
+- Arbeidsflyten `webapp-deploy.yml` gjør det samme i GitHub Actions og pakker innholdet i `frontend/dist/` til `release.zip`.
 
-npm ci && npm run build && npm start
+# Deploy
 
-Tips ved konflikt på port:
+- App Service publish profile legges i secret `APPLICATION_PUBLISH_PROFILE`.
+- `webapp-deploy.yml` bygger med `VITE_API_URL=https://sparcollection-azfunc.azurewebsites.net/api` og ZipDeployer pakker `frontend/dist/` direkte til App Service.
+- Husk å aktivere CORS på Functions-app-en for hostnavnet til App Service.
 
-- Standardport er 8080. Hvis opptatt, kan du starte med tilfeldig port:
-
-```sh
-PORT=0 npm start
-```
-
-I lokalmodus proxies /api automatisk til <http://localhost:7071> hvis FUNCTIONS_BASE_URL ikke er satt.
-
-Bygg & deploy:
-– Sett GitHub Secret: AZUREAPPSERVICE_PUBLISHPROFILE (publish profile XML innhold)
-– Push til main. Workflow bygger Vite, pakker server + node_modules og ZipDeploy’er.
-
-Ruting og proxy:
-– Klient kaller alltid /api/.
-– Express proxy sender til FUNCTIONS_BASE_URL/api/.
-– Ingen CORS-hode nødvendig fra browser → server same-origin.
+Backend (Azure Functions) deployes fortsatt via `main_sparcollection-azfunc.yml`.

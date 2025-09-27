@@ -1,4 +1,4 @@
-name: Build & deploy React+Node to Azure Web App
+name: Build & deploy frontend to Azure Web App
 permissions:
   contents: read
 
@@ -8,12 +8,16 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/webapp-deploy.yml'
-      - 'server.js'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'frontend/src/**'
+      - 'frontend/public/**'
       - 'package.json'
   workflow_dispatch:
 
 env:
   WEBAPP_NAME: SparCollection
+  FUNCTION_API_URL: https://sparcollection-azfunc.azurewebsites.net/api
 
 jobs:
   build:
@@ -23,28 +27,22 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.12.0'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
 
       - name: Build frontend
+        env:
+          VITE_API_URL: ${{ env.FUNCTION_API_URL }}
         run: |
           npm --prefix frontend ci
           npm --prefix frontend run build
 
-      - name: Install server deps (production)
-        run: |
-          npm ci
-          npm prune --omit=dev
-
       - name: Create deploy bundle
         run: |
-          rm -rf deploy && mkdir -p deploy
-          cp server.js package.json deploy/
-          rsync -a node_modules/ deploy/node_modules/
-          mkdir -p deploy/frontend/dist
-          rsync -a frontend/dist/ deploy/frontend/dist/
-          (cd deploy && zip -qr ../release.zip .)
+          rm -rf release && mkdir -p release
+          rsync -a frontend/dist/ release/
+          (cd release && zip -qr ../release.zip .)
 
       - uses: actions/upload-artifact@v4
         with:
@@ -65,5 +63,5 @@ jobs:
         with:
           app-name: ${{ env.WEBAPP_NAME }}
           slot-name: Production
-          publish-profile: ${{ secrets.APPLICATION_PUBLISH_PROFILE }}  # <- må være Web App sin profile
+          publish-profile: ${{ secrets.APPLICATION_PUBLISH_PROFILE }}
           package: release.zip

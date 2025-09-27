@@ -2,24 +2,8 @@
   "name": "sparcollection-web",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
-  "engines": {
-    "node": ">=20.x"
-  },
   "scripts": {
     "build": "npm --prefix frontend ci && npm --prefix frontend run build",
-    "postbuild": "node scripts/postbuild-copy.cjs",
-    "start": "node server.js",
-    "zipinfo": "node -e \"console.log('Build bundle ready for ZipDeploy')\""
-  },
-  "dependencies": {
-    "compression": "^1.7.4",
-    "express": "^4.19.2",
-    "http-proxy-middleware": "^3.0.0",
-    "serve-static": "^1.15.0",
-    "express-rate-limit": "^8.1.0"
-  },
-  "devDependencies": {
-    "rimraf": "^5.0.7"
+    "build:frontend": "npm --prefix frontend run build"
   }
 }

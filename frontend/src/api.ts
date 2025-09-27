@@ -1,4 +1,5 @@
-export const API_BASE = '/api';
+const rawBase = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+export const API_BASE = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 
 export async function apiGet<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, { ...init, credentials: 'include' });
