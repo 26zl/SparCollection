@@ -55,4 +55,5 @@ jobs:
         with:
           app-name: 'sparcollection-azfuncy1'      
           package: azure_functions-release.zip
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS_Y1 }}
+
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FUNCTIONS }}
