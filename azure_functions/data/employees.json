@@ -1,0 +1,5 @@
+[
+  { "id": "emp001", "name": "Anna Hent", "role": "Picker" },
+  { "id": "emp002", "name": "Ola Plukk", "role": "Picker" },
+  { "id": "emp003", "name": "Ida Kontroll", "role": "Supervisor" }
+]

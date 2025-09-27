@@ -1,0 +1,9 @@
+{
+  "name": "Spar Collection",
+  "short_name": "Spar",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": []
+}
