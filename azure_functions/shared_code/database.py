@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-import pyodbc
+import pymssql
 from typing import Any, Dict, List, Optional
 
 # Database connection string from environment
@@ -15,7 +15,26 @@ def get_connection():
         raise Exception("SQL_CONNECTION_STRING environment variable not set")
     
     try:
-        conn = pyodbc.connect(CONNECTION_STRING)
+        # Parse connection string for pymssql
+        # Format: Server=tcp:server,1433;Database=db;User Id=user;Password=pass;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+        parts = {}
+        for part in CONNECTION_STRING.split(';'):
+            if '=' in part:
+                key, value = part.split('=', 1)
+                parts[key.strip()] = value.strip()
+        
+        server = parts.get('Server', '').replace('tcp:', '').replace(',1433', '')
+        database = parts.get('Database', '')
+        user = parts.get('User Id', '')
+        password = parts.get('Password', '')
+        
+        conn = pymssql.connect(
+            server=server,
+            database=database,
+            user=user,
+            password=password,
+            autocommit=True
+        )
         return conn
     except Exception as e:
         logging.error("Failed to connect to database: %s", str(e))
