@@ -26,13 +26,31 @@ SparCollection/
 │   └── package.json
 ├── azure_functions/         # Azure Functions backend
 │   ├── shared_code/        # Shared utilities
-│   │   ├── database.py     # Database operations
+│   │   ├── data.py         # Database operations
 │   │   └── servicebus.py   # Event publishing
 │   ├── lists_get/          # Get all lists endpoint
 │   ├── list_get/           # Get single list endpoint
 │   ├── item_update/        # Update item status endpoint
 │   └── list_complete/      # Complete list endpoint
 └── .github/workflows/      # CI/CD pipelines
+```
+
+## 🚀 Local Development
+
+### Standard Ports
+- **Frontend**: http://localhost:5173
+- **Backend**: http://localhost:7071
+
+### Start Commands
+```bash
+# Backend (Terminal 1)
+cd azure_functions
+source .venv/bin/activate
+func start --port 7071
+
+# Frontend (Terminal 2)  
+cd frontend
+npm run dev
 ```
 
 ## 🚀 API Endpoints
@@ -43,6 +61,8 @@ SparCollection/
 | GET | `/api/list_get?listId=abc123&shopId=NO-TR-001` | Get specific list |
 | POST | `/api/item_update/{listId}/{itemId}` | Update item status |
 | POST | `/api/list_complete/{listId}` | Mark list as completed |
+| POST | `/api/list_create?shopId=NO-TR-001` | Create new list |
+| DELETE | `/api/list_delete/{listId}?shopId=NO-TR-001` | Delete list |
 
 ## 🗄️ Database Schema
 

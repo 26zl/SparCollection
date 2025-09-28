@@ -8,12 +8,9 @@
     "routePrefix": "api",
     "cors": {
       "allowedOrigins": [
-        "http://localhost:3000",
-        "http://localhost:4173",
         "http://localhost:5173",
-        "http://localhost:5174",
-        "https://sparcollection-web-faasfhqd6lxhbasgn.northeurope-01.azurewebsites.net",
-        "https://sparcollection-web-faa4hqd6hxbhaqgm.northeurope-01.azurewebsites.net"
+        "https://sparcollection-web-faa4hqd6hxbhaqgm.northeurope-01.azurewebsites.net",
+        "https://sparcollection-web-faasfhqd6lxhbasgn.northeurope-01.azurewebsites.net"
       ],
       "supportCredentials": true
     }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet, listsRoute } from '../api';
 import { offlineManager } from '../offline';
+import CreateListForm from '../components/CreateListForm';
 
 interface ShoppingList {
   id: string;
@@ -13,6 +14,7 @@ export default function HomePage() {
   const [lists, setLists] = useState<ShoppingList[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -46,23 +48,70 @@ export default function HomePage() {
     void load();
   }, []);
 
+  const handleListCreated = () => {
+    setShowCreateForm(false);
+    // Reload lists
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (offlineManager.isConnected()) {
+          const data = await apiGet<ShoppingList[]>(listsRoute());
+          setLists(data);
+          offlineManager.storeOfflineData(data);
+        } else {
+          const offlineData = offlineManager.getOfflineData();
+          setLists(offlineData);
+          setError('Offline mode - showing cached data');
+        }
+      } catch (err) {
+        const offlineData = offlineManager.getOfflineData();
+        if (offlineData.length > 0) {
+          setLists(offlineData);
+          setError('Offline mode - showing cached data');
+        } else {
+          setError(err instanceof Error ? err.message : 'Klarte ikke å hente lister');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
+  };
+
   return (
     <section className="page">
       <div className="page__intro">
         <h1>Spar Collection</h1>
         <p>Velg en liste for å se detaljer og oppdatere plukkestatus.</p>
+        
         <div className="page__status">
           <span className="page__api">Klient snakker via /api</span>
           <span className={`status-indicator ${offlineManager.isConnected() ? 'online' : 'offline'}`}>
             {offlineManager.isConnected() ? '🟢 Online' : '🔴 Offline'}
           </span>
         </div>
+        <div className="page__actions">
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="btn btn--primary"
+          >
+            + Opprett ny liste
+          </button>
+        </div>
       </div>
 
       {loading && <p>Laster lister…</p>}
       {error && <p className="text--error">{error}</p>}
 
-      {!loading && !error && (
+      {showCreateForm && (
+        <CreateListForm
+          onListCreated={handleListCreated}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
+
+      {!loading && !error && !showCreateForm && (
         <ul className="list__items">
           {lists.map((list) => (
             <li key={list.id} className="item-card">

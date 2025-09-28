@@ -10,7 +10,7 @@ const SYNC_INTERVAL = 30000; // 30 seconds
 
 class OfflineManager {
   private isOnline: boolean = navigator.onLine;
-  private syncInterval: NodeJS.Timeout | null = null;
+  private syncInterval: number | null = null;
 
   constructor() {
     this.setupEventListeners();

@@ -6,7 +6,10 @@
       "type": "httpTrigger",
       "direction": "in",
       "name": "req",
-      "methods": ["get"]
+      "methods": [
+        "delete"
+      ],
+      "route": "list_delete/{list_id}"
     },
     {
       "type": "http",
