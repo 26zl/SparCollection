@@ -10,14 +10,17 @@ export const itemUpdateRoute = (listId: string, itemId: string) =>
 export const listCompleteRoute = (listId: string) =>
   `/list_complete/${encodeURIComponent(listId)}`;
 
+export const joinApi = (base: string, path: string): string =>
+  `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+
 export async function apiGet<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { ...init, credentials: 'include' });
+  const res = await fetch(joinApi(API_BASE, path), { ...init, credentials: 'include' });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<T>;
 }
 
 export async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(joinApi(API_BASE, path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
