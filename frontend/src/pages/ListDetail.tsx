@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiGet, apiPost, itemUpdateRoute, listCompleteRoute, listRoute } from '../api';
 import ItemCard from '../components/ItemCard';
@@ -43,7 +43,7 @@ export default function ListDetailPage() {
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [completionInfo, setCompletionInfo] = useState<CompletionInfo | null>(null);
 
-  const loadList = async (listId: string) => {
+  const loadList = useCallback(async (listId: string) => {
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -56,13 +56,13 @@ export default function ListDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (id) {
       void loadList(id);
     }
-  }, [id]);
+  }, [id, loadList]);
 
   const summary = useMemo(() => {
     if (!list) {
@@ -77,7 +77,7 @@ export default function ListDetailPage() {
     );
   }, [list]);
 
-  const handleUpdate = async (itemId: string, newStatus: Exclude<ShoppingListItem['status'], 'pending'>) => {
+  const handleUpdate = useCallback(async (itemId: string, newStatus: Exclude<ShoppingListItem['status'], 'pending'>) => {
     if (!id) {
       return;
     }
@@ -93,9 +93,9 @@ export default function ListDetailPage() {
     } finally {
       setActiveItem(null);
     }
-  };
+  }, [id, loadList]);
 
-  const handleComplete = async () => {
+  const handleComplete = useCallback(async () => {
     if (!id) {
       return;
     }
@@ -113,7 +113,7 @@ export default function ListDetailPage() {
     } finally {
       setCompleting(false);
     }
-  };
+  }, [id, loadList]);
 
   return (
     <section className="page">

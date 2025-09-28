@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 type ItemStatus = 'pending' | 'collected' | 'unavailable';
 
 interface ItemCardProps {
@@ -16,7 +18,7 @@ const statusLabel: Record<ItemStatus, string> = {
   unavailable: 'utilgjengelig',
 };
 
-export default function ItemCard({
+const ItemCard = memo(function ItemCard({
   name,
   quantity = 1,
   status,
@@ -45,4 +47,6 @@ export default function ItemCard({
       </div>
     </li>
   );
-}
+});
+
+export default ItemCard;

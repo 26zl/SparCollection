@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet, listsRoute } from '../api';
+import { offlineManager } from '../offline';
 
 interface ShoppingList {
   id: string;
@@ -18,10 +19,26 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await apiGet<ShoppingList[]>(listsRoute());
-        setLists(data);
+        // Try online first
+        if (offlineManager.isConnected()) {
+          const data = await apiGet<ShoppingList[]>(listsRoute());
+          setLists(data);
+          offlineManager.storeOfflineData(data);
+        } else {
+          // Use offline data
+          const offlineData = offlineManager.getOfflineData();
+          setLists(offlineData);
+          setError('Offline mode - showing cached data');
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Klarte ikke å hente lister');
+        // Fallback to offline data
+        const offlineData = offlineManager.getOfflineData();
+        if (offlineData.length > 0) {
+          setLists(offlineData);
+          setError('Offline mode - showing cached data');
+        } else {
+          setError(err instanceof Error ? err.message : 'Klarte ikke å hente lister');
+        }
       } finally {
         setLoading(false);
       }
@@ -34,7 +51,12 @@ export default function HomePage() {
       <div className="page__intro">
         <h1>Spar Collection</h1>
         <p>Velg en liste for å se detaljer og oppdatere plukkestatus.</p>
-        <span className="page__api">Klient snakker via /api</span>
+        <div className="page__status">
+          <span className="page__api">Klient snakker via /api</span>
+          <span className={`status-indicator ${offlineManager.isConnected() ? 'online' : 'offline'}`}>
+            {offlineManager.isConnected() ? '🟢 Online' : '🔴 Offline'}
+          </span>
+        </div>
       </div>
 
       {loading && <p>Laster lister…</p>}

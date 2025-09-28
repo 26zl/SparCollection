@@ -18,9 +18,10 @@ def publish_event(payload: Dict[str, Any]) -> None:
     try:
         from azure.servicebus import ServiceBusClient, ServiceBusMessage
         
-        with ServiceBusClient.from_connection_string(_CONNECTION) as client:
+        with ServiceBusClient.from_connection_string(_CONNECTION, connection_timeout=5) as client:
             with client.get_queue_sender(queue_name=_QUEUE_NAME) as sender:
                 sender.send_messages(ServiceBusMessage(json.dumps(payload, ensure_ascii=False)))
+                logging.info("Successfully published event to Service Bus: %s", payload.get("type", "unknown"))
     except ImportError:
         logging.warning("azure-servicebus not available; logging event instead: %s", json.dumps(payload))
     except Exception:

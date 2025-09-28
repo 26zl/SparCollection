@@ -52,6 +52,30 @@
   color: #475569;
 }
 
+.page__status {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.status-indicator {
+  font-size: 0.9em;
+  font-weight: bold;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.status-indicator.online {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-indicator.offline {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
 .page__actions {
   display: flex;
   gap: 0.75rem;
