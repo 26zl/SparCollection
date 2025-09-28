@@ -3,7 +3,7 @@ import logging
 
 import azure.functions as func
 
-from shared_code.db import fetch_list_with_items
+from shared_code.data import get_list
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -19,7 +19,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Fetching list %s (shop %s)", list_id, shop_id)
 
     try:
-        data = fetch_list_with_items(list_id, shop_id)
+        data = get_list(list_id, shop_id)
     except Exception:
         logging.exception("Database error while fetching list %s", list_id)
         return func.HttpResponse(

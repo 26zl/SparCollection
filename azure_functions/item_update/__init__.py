@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 
 import azure.functions as func
 
-from shared_code.db import update_item
+from shared_code.data import update_item
 from shared_code.servicebus import publish_event
 
 

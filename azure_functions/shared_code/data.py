@@ -39,28 +39,33 @@ def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, 
             return list_item
     return None
 
-def update_item(list_id: str, item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional[int] = None) -> Optional[Dict[str, Any]]:
     """Update an item in a list"""
     for list_item in _data["lists"]:
         if list_item["id"] == list_id:
             for item in list_item["items"]:
                 if item["id"] == item_id:
-                    # Update allowed fields
-                    if "status" in updates:
-                        item["status"] = updates["status"]
-                    if "qty" in updates:
-                        item["qty"] = updates["qty"]
+                    # Update status
+                    item["status"] = status
+                    # Update quantity if provided
+                    if qty_collected is not None:
+                        item["qty"] = qty_collected
                     item["version"] += 1
                     return item
     return None
 
-def complete_list(list_id: str, completed_by: Optional[str] = None) -> bool:
+def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Mark a list as completed"""
     for list_item in _data["lists"]:
         if list_item["id"] == list_id:
             list_item["status"] = "completed"
-            return True
-    return False
+            return {
+                "listId": list_id,
+                "status": "completed",
+                "completedAt": "2024-01-01T00:00:00Z",  # Mock timestamp
+                "completedBy": completed_by,
+            }
+    return None
 
 def init_database():
     """Initialize database - no-op for JSON storage"""
