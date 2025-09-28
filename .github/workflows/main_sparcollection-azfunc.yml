@@ -73,4 +73,4 @@ jobs:
           app-name: 'sparcollection-azfunc-fffjcpb5cphnfhac'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1B4D64B0DA7A426DB840FFB7B3DF962E }}
           app-settings: |
-            SQL_CONNECTION_STRING=Server=tcp:sparcollection-web-server.database.windows.net,1433;Database=sparcollection-web-database;Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+            SQL_CONNECTION_STRING=Server=tcp:sparcollection-web-server.database.windows.net,1433;Database=sparcollection-web-database;User Id=sparcollection-web-server-admin;Password=QZ4$CNUS4$0weaBP;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
