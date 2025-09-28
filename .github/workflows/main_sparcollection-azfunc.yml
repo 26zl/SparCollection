@@ -39,6 +39,13 @@ jobs:
         run: |
           # Install dependencies to .python_packages for Azure Functions
           pip install --target .python_packages/site-packages -r requirements.txt
+          # Copy data files from the source directory
+          cp -r ../data ./
+          # Ensure data directory exists and has initial files if copying failed
+          mkdir -p data
+          if [ ! -f data/lists.json ]; then echo '[]' > data/lists.json; fi
+          if [ ! -f data/employees.json ]; then echo '[]' > data/employees.json; fi
+          if [ ! -f data/stock.json ]; then echo '[]' > data/stock.json; fi
           zip -r ../azure_functions-release.zip .
 
       - name: Upload artifact for deployment job
