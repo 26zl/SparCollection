@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "description": "Spar Collection - Shopping List Management System",
   "engines": {
-    "node": "22.x"
+    "node": "22.12.0"
   },
   "scripts": {
     "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
+    "start": "echo 'Static site - no start script needed'",
     "install:frontend": "cd frontend && npm install",
     "install:backend": "cd azure_functions && pip install -r requirements.txt"
   },
