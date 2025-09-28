@@ -39,43 +39,7 @@ jobs:
         run: |
           # Install dependencies to .python_packages for Azure Functions
           pip install --target .python_packages/site-packages -r requirements.txt
-          # Create data directory and initialize files with test data
-          mkdir -p data
-          cat > data/lists.json << 'EOF'
-          [
-            {
-              "id": "abc123",
-              "title": "Liste abc123",
-              "status": "active",
-              "shop_id": "NO-TR-001",
-              "items": [
-                {
-                  "id": "item-100",
-                  "name": "Melk 1L",
-                  "qty": 2,
-                  "status": "pending",
-                  "version": 1
-                },
-                {
-                  "id": "item-101", 
-                  "name": "Brød grovt",
-                  "qty": 1,
-                  "status": "pending",
-                  "version": 1
-                },
-                {
-                  "id": "item-102",
-                  "name": "Epler",
-                  "qty": 6,
-                  "status": "pending",
-                  "version": 1
-                }
-              ]
-            }
-          ]
-          EOF
-          echo '[]' > data/employees.json
-          echo '[]' > data/stock.json
+          # Create deployment package
           zip -r ../azure_functions-release.zip .
 
       - name: Upload artifact for deployment job

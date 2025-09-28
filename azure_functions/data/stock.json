@@ -1,7 +1,0 @@
-[
-  { "sku": "item-100", "name": "Melk 1L", "available": 52 },
-  { "sku": "item-101", "name": "Brød grovt", "available": 34 },
-  { "sku": "item-102", "name": "Epler", "available": 120 },
-  { "sku": "item-200", "name": "Smør", "available": 40 },
-  { "sku": "item-201", "name": "Egg 12pk", "available": 18 }
-]
