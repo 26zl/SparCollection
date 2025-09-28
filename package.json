@@ -1,0 +1,29 @@
+{
+  "name": "sparcollection",
+  "version": "1.0.0",
+  "description": "Spar Collection - Shopping List Management System",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd azure_functions && pip install -r requirements.txt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/SparCollection.git"
+  },
+  "keywords": [
+    "spar",
+    "shopping",
+    "list",
+    "management",
+    "azure",
+    "react",
+    "typescript"
+  ],
+  "author": "Spar Collection Team",
+  "license": "MIT"
+}
