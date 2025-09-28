@@ -4,7 +4,8 @@ from typing import Any, Dict
 
 import azure.functions as func
 
-from shared_code import load_json, persist_json, publish_event
+from shared_code.database import update_item, init_database, create_sample_data
+from shared_code.servicebus import publish_event
 
 ALLOWED_FIELDS = {"status", "qty"}
 
@@ -50,70 +51,45 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 mimetype="application/json",
             )
 
-        # Try to load data, fallback to empty list if file doesn't exist
+        # Initialize database and create sample data if needed
         try:
-            lists = load_json("lists.json")
-        except FileNotFoundError:
-            logging.warning("lists.json not found, returning 404")
-            return func.HttpResponse(
-                body=json.dumps({"error": "List not found"}),
-                status_code=404,
-                mimetype="application/json",
-            )
+            init_database()
+            create_sample_data()
         except Exception as e:
-            logging.error("Error loading lists.json: %s", str(e))
+            logging.error("Database initialization failed: %s", str(e))
             return func.HttpResponse(
-                body=json.dumps({"error": "Internal server error"}),
+                body=json.dumps({"error": "Database not available"}),
                 status_code=500,
                 mimetype="application/json",
             )
 
-        for shopping_list in lists:
-            if shopping_list["id"] != list_id:
-                continue
-            for item in shopping_list.get("items", []):
-                if item["id"] != item_id:
-                    continue
-                
-                # Update the item
-                item.update(update_fields)
-                item["version"] = int(item.get("version", 0)) + 1
-                
-                # Save changes
-                try:
-                    persist_json("lists.json", lists)
-                except Exception as e:
-                    logging.error("Error saving lists.json: %s", str(e))
-                    return func.HttpResponse(
-                        body=json.dumps({"error": "Failed to save changes"}),
-                        status_code=500,
-                        mimetype="application/json",
-                    )
-                
-                # Publish event (this will gracefully handle missing Service Bus)
-                try:
-                    publish_event(
-                        {
-                            "type": "item-updated",
-                            "listId": list_id,
-                            "itemId": item_id,
-                            "changes": update_fields,
-                            "version": item["version"],
-                        }
-                    )
-                except Exception as e:
-                    logging.warning("Failed to publish event: %s", str(e))
-                    # Don't fail the request if event publishing fails
-                
-                logging.info("Successfully updated item %s in list %s", item_id, list_id)
-                return func.HttpResponse(body=json.dumps(item), mimetype="application/json")
-
-        logging.warning("List %s or item %s not found", list_id, item_id)
-        return func.HttpResponse(
-            body=json.dumps({"error": "List or item not found"}),
-            status_code=404,
-            mimetype="application/json",
-        )
+        # Update item in database
+        updated_item = update_item(list_id, item_id, update_fields)
+        if updated_item is None:
+            logging.warning("List %s or item %s not found", list_id, item_id)
+            return func.HttpResponse(
+                body=json.dumps({"error": "List or item not found"}),
+                status_code=404,
+                mimetype="application/json",
+            )
+        
+        # Publish event (this will gracefully handle missing Service Bus)
+        try:
+            publish_event(
+                {
+                    "type": "item-updated",
+                    "listId": list_id,
+                    "itemId": item_id,
+                    "changes": update_fields,
+                    "version": updated_item["version"],
+                }
+            )
+        except Exception as e:
+            logging.warning("Failed to publish event: %s", str(e))
+            # Don't fail the request if event publishing fails
+        
+        logging.info("Successfully updated item %s in list %s", item_id, list_id)
+        return func.HttpResponse(body=json.dumps(updated_item), mimetype="application/json")
     
     except Exception as e:
         logging.exception("Error in item_update function: %s", str(e))

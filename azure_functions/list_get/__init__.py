@@ -2,7 +2,7 @@ import json
 import logging
 import azure.functions as func
 
-from shared_code import load_json
+from shared_code.database import get_list, init_database, create_sample_data
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -18,15 +18,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         shop_id = req.params.get("shopId")
         logging.info("Getting list %s for shop %s", list_id, shop_id)
         
-        lists = load_json("lists.json")
-        data = next(
-            (
-                entry
-                for entry in lists
-                if entry["id"] == list_id and (not shop_id or entry.get("shop_id") in (None, shop_id))
-            ),
-            None,
-        )
+        # Initialize database and create sample data if needed
+        try:
+            init_database()
+            create_sample_data()
+        except Exception as e:
+            logging.warning("Database initialization failed: %s", str(e))
+            return func.HttpResponse(
+                body=json.dumps({"error": "Database not available"}),
+                status_code=500,
+                mimetype="application/json",
+            )
+        
+        # Get list from database
+        data = get_list(list_id, shop_id)
         if data is None:
             logging.warning("List %s not found for shop %s", list_id, shop_id)
             return func.HttpResponse(

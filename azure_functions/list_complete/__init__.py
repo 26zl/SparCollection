@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 
 import azure.functions as func
 
-from shared_code import load_json, persist_json, publish_event
+from shared_code.database import complete_list, init_database, create_sample_data
+from shared_code.servicebus import publish_event
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -33,70 +34,50 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 mimetype="application/json",
             )
 
-        # Try to load data, fallback to empty list if file doesn't exist
+        # Initialize database and create sample data if needed
         try:
-            lists = load_json("lists.json")
-        except FileNotFoundError:
-            logging.warning("lists.json not found, returning 404")
+            init_database()
+            create_sample_data()
+        except Exception as e:
+            logging.error("Database initialization failed: %s", str(e))
+            return func.HttpResponse(
+                body=json.dumps({"error": "Database not available"}),
+                status_code=500,
+                mimetype="application/json",
+            )
+
+        # Complete list in database
+        success = complete_list(list_id)
+        if not success:
+            logging.warning("List %s not found", list_id)
             return func.HttpResponse(
                 body=json.dumps({"error": "List not found"}),
                 status_code=404,
                 mimetype="application/json",
             )
-        except Exception as e:
-            logging.error("Error loading lists.json: %s", str(e))
-            return func.HttpResponse(
-                body=json.dumps({"error": "Internal server error"}),
-                status_code=500,
-                mimetype="application/json",
-            )
-
-        for shopping_list in lists:
-            if shopping_list["id"] != list_id:
-                continue
-            
-            # Update list status
-            shopping_list["status"] = "completed"
-            shopping_list["completed_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Publish event (this will gracefully handle missing Service Bus)
+        try:
+            completed_by = None
             if isinstance(payload, dict) and payload.get("completed_by"):
-                shopping_list["completed_by"] = str(payload["completed_by"])
+                completed_by = str(payload["completed_by"])
             
-            # Save changes
-            try:
-                persist_json("lists.json", lists)
-            except Exception as e:
-                logging.error("Error saving lists.json: %s", str(e))
-                return func.HttpResponse(
-                    body=json.dumps({"error": "Failed to save changes"}),
-                    status_code=500,
-                    mimetype="application/json",
-                )
-            
-            # Publish event (this will gracefully handle missing Service Bus)
-            try:
-                publish_event(
-                    {
-                        "type": "list-completed",
-                        "listId": list_id,
-                        "status": shopping_list["status"],
-                        "completedAt": shopping_list["completed_at"],
-                        "completedBy": shopping_list.get("completed_by"),
-                    }
-                )
-            except Exception as e:
-                logging.warning("Failed to publish event: %s", str(e))
-                # Don't fail the request if event publishing fails
-            
-            logging.info("Successfully completed list %s", list_id)
-            return func.HttpResponse(
-                body=json.dumps({"queued": True, "listId": list_id}),
-                mimetype="application/json",
+            publish_event(
+                {
+                    "type": "list-completed",
+                    "listId": list_id,
+                    "status": "completed",
+                    "completedAt": datetime.now(timezone.utc).isoformat(),
+                    "completedBy": completed_by,
+                }
             )
-
-        logging.warning("List %s not found", list_id)
+        except Exception as e:
+            logging.warning("Failed to publish event: %s", str(e))
+            # Don't fail the request if event publishing fails
+        
+        logging.info("Successfully completed list %s", list_id)
         return func.HttpResponse(
-            body=json.dumps({"error": "List not found"}),
-            status_code=404,
+            body=json.dumps({"queued": True, "listId": list_id}),
             mimetype="application/json",
         )
     
