@@ -1,90 +1,81 @@
 import json
 import logging
-from datetime import datetime, timezone
+from typing import Any, Dict
 
 import azure.functions as func
 
-from shared_code.data import complete_list, init_database, create_sample_data
+from shared_code.db import complete_list
 from shared_code.servicebus import publish_event
 
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+def _parse_body(body: bytes) -> Dict[str, Any]:
+    if not body:
+        return {}
     try:
-        list_id = req.route_params.get("list_id")
-        
-        if not list_id:
-            logging.warning("Missing list_id in route parameters")
-            return func.HttpResponse(
-                body=json.dumps({"error": "Missing list_id"}),
-                status_code=400,
-                mimetype="application/json",
-            )
-        
-        logging.info("Completing list %s", list_id)
+        payload = json.loads(body)
+    except ValueError:
+        raise ValueError("Body must be valid JSON")
+    if not isinstance(payload, dict):
+        raise ValueError("Body must be a JSON object")
+    return payload
 
-        payload = {}
-        try:
-            if req.get_body():
-                payload = req.get_json()
-        except ValueError:
-            logging.warning("Invalid JSON in request body")
-            return func.HttpResponse(
-                body=json.dumps({"error": "Body must be valid JSON"}),
-                status_code=400,
-                mimetype="application/json",
-            )
 
-        # Initialize database and create sample data if needed
-        try:
-            init_database()
-            create_sample_data()
-        except Exception as e:
-            logging.error("Database initialization failed: %s", str(e))
-            return func.HttpResponse(
-                body=json.dumps({"error": "Database not available"}),
-                status_code=500,
-                mimetype="application/json",
-            )
+def main(req: func.HttpRequest) -> func.HttpResponse:
+    list_id = req.route_params.get("list_id")
 
-        # Complete list in database
-        success = complete_list(list_id)
-        if not success:
-            logging.warning("List %s not found", list_id)
-            return func.HttpResponse(
-                body=json.dumps({"error": "List not found"}),
-                status_code=404,
-                mimetype="application/json",
-            )
-        
-        # Publish event (this will gracefully handle missing Service Bus)
-        try:
-            completed_by = None
-            if isinstance(payload, dict) and payload.get("completed_by"):
-                completed_by = str(payload["completed_by"])
-            
-            publish_event(
-                {
-                    "type": "list-completed",
-                    "listId": list_id,
-                    "status": "completed",
-                    "completedAt": datetime.now(timezone.utc).isoformat(),
-                    "completedBy": completed_by,
-                }
-            )
-        except Exception as e:
-            logging.warning("Failed to publish event: %s", str(e))
-            # Don't fail the request if event publishing fails
-        
-        logging.info("Successfully completed list %s", list_id)
+    if not list_id:
         return func.HttpResponse(
-            body=json.dumps({"queued": True, "listId": list_id}),
+            body=json.dumps({"error": "list_id is required"}, ensure_ascii=False),
+            status_code=400,
             mimetype="application/json",
         )
-    
-    except Exception as e:
-        logging.exception("Error in list_complete function: %s", str(e))
+
+    logging.info("Completing list %s", list_id)
+
+    try:
+        payload = _parse_body(req.get_body())
+    except ValueError as exc:
         return func.HttpResponse(
-            body=json.dumps({"error": "Internal server error", "details": str(e)}),
+            body=json.dumps({"error": str(exc)}, ensure_ascii=False),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    employee_id = payload.get("employeeId") if isinstance(payload, dict) else None
+    if employee_id is not None:
+        employee_id = str(employee_id)
+
+    try:
+        result = complete_list(list_id, employee_id)
+    except Exception:
+        logging.exception("Database error while completing list %s", list_id)
+        return func.HttpResponse(
+            body=json.dumps({"error": "database error"}, ensure_ascii=False),
             status_code=500,
             mimetype="application/json",
         )
+
+    if result is None:
+        return func.HttpResponse(
+            body=json.dumps({"error": "not found"}, ensure_ascii=False),
+            status_code=404,
+            mimetype="application/json",
+        )
+
+    try:
+        publish_event(
+            {
+                "type": "list-completed",
+                "listId": list_id,
+                "status": "COMPLETED",
+                "completedAt": result.get("completedAt"),
+                "completedBy": result.get("completedBy"),
+            }
+        )
+    except Exception:
+        logging.warning("Failed to publish list-completed event for %s", list_id)
+
+    return func.HttpResponse(
+        body=json.dumps(result, ensure_ascii=False),
+        mimetype="application/json",
+    )

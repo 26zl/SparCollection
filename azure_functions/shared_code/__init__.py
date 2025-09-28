@@ -1,2 +1,8 @@
-from .data import get_lists, get_list, update_item, complete_list, init_database, create_sample_data  # noqa: F401
+from .db import (  # noqa: F401
+    fetch_lists,
+    fetch_list_with_items,
+    update_item,
+    complete_list,
+    get_conn,
+)
 from .servicebus import publish_event  # noqa: F401
