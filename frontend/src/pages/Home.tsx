@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiGet } from '../api';
+import { apiGet, listsRoute } from '../api';
 
 interface ShoppingList {
   id: string;
@@ -18,7 +18,7 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
       try {
-        const data = await apiGet<ShoppingList[]>('/lists');
+        const data = await apiGet<ShoppingList[]>(listsRoute());
         setLists(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Klarte ikke å hente lister');
@@ -34,7 +34,7 @@ export default function HomePage() {
       <div className="page__intro">
         <h1>Spar Collection</h1>
         <p>Velg en liste for å se detaljer og oppdatere plukkestatus.</p>
-        <span className="page__api">Klient snakker via /api (proxy i Node-server)</span>
+        <span className="page__api">Klient snakker via /api</span>
       </div>
 
       {loading && <p>Laster lister…</p>}

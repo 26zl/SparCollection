@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { apiGet, apiPost } from '../api';
+import { apiGet, apiPost, itemUpdateRoute, listCompleteRoute, listRoute } from '../api';
 import ItemCard from '../components/ItemCard';
 
 interface ShoppingListItem {
@@ -48,7 +48,7 @@ export default function ListDetailPage() {
     setError(null);
     setMessage(null);
     try {
-      const data = await apiGet<ShoppingList>(`/lists/${listId}`);
+      const data = await apiGet<ShoppingList>(listRoute(listId));
       setList(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Klarte ikke å hente listen');
@@ -85,7 +85,7 @@ export default function ListDetailPage() {
     setMessage(null);
     setError(null);
     try {
-      await apiPost(`/lists/${id}/item/${itemId}`, { status: newStatus });
+      await apiPost(itemUpdateRoute(id, itemId), { status: newStatus });
       await loadList(id);
       setMessage('Vare oppdatert.');
     } catch (err) {
@@ -103,7 +103,7 @@ export default function ListDetailPage() {
     setMessage(null);
     setError(null);
     try {
-      const result = await apiPost<CompletionInfo>(`/lists/${id}/complete`, {});
+      const result = await apiPost<CompletionInfo>(listCompleteRoute(id), {});
       setCompletionInfo(result);
       await loadList(id);
       setMessage('Fullføring registrert.');
