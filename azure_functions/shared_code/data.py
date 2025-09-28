@@ -5,9 +5,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-# Use relative path from current working directory in Azure Functions
-DEFAULT_DATA_ROOT = Path("data")
-DATA_ROOT = Path(os.environ.get("DATA_ROOT", str(DEFAULT_DATA_ROOT)))
+# Hardcode data path for Azure Functions - it should be in the root of the function app
+DATA_ROOT = Path("data")
 
 
 def load_json(name: str) -> Any:
@@ -17,7 +16,18 @@ def load_json(name: str) -> Any:
 
 
 def persist_json(name: str, payload: Any) -> None:
+    import logging
+    
     path = DATA_ROOT / name
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
+    logging.info("Attempting to save to path: %s", str(path.absolute()))
+    logging.info("Current working directory: %s", os.getcwd())
+    logging.info("DATA_ROOT exists: %s", DATA_ROOT.exists())
+    
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+        logging.info("Successfully saved to %s", str(path))
+    except Exception as e:
+        logging.error("Failed to save to %s: %s", str(path), str(e))
+        raise
