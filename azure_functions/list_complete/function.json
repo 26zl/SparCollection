@@ -7,7 +7,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["post"],
-      "route": "lists/{list_id}/complete"
+      "route": "list_complete/{list_id}"
     },
     {
       "type": "http",

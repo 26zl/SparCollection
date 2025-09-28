@@ -7,7 +7,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["post"],
-      "route": "lists/{list_id}/item/{item_id}"
+      "route": "item_update/{list_id}/{item_id}"
     },
     {
       "type": "http",

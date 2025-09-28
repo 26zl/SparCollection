@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  WEBAPP_NAME: 'sparcollection-web'
+  WEBAPP_NAME: 'sparcollection-web-faasfhqd6lxhbasgn'
   FUNCTION_API_URL: https://sparcollection-azfunc-fffjcpb5cphnfhac.northeurope-01.azurewebsites.net/api
 
 jobs:
@@ -62,7 +62,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'sparcollection-web'
+          app-name: ${{ env.WEBAPP_NAME }}
           slot-name: Production
           package: release.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_9C1E2BCFB3124D8789D405CF06D7C9F3 }}
