@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 import azure.functions as func
 
-from shared_code.database import update_item, init_database, create_sample_data
+from shared_code.data import update_item, init_database, create_sample_data
 from shared_code.servicebus import publish_event
 
 ALLOWED_FIELDS = {"status", "qty"}

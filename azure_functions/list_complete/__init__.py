@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import azure.functions as func
 
-from shared_code.database import complete_list, init_database, create_sample_data
+from shared_code.data import complete_list, init_database, create_sample_data
 from shared_code.servicebus import publish_event
 
 

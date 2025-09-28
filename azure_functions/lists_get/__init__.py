@@ -2,7 +2,7 @@ import json
 import logging
 import azure.functions as func
 
-from shared_code.database import get_lists, init_database, create_sample_data
+from shared_code.data import get_lists, init_database, create_sample_data
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
