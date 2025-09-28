@@ -40,20 +40,52 @@ def get_connection():
         if not conn_str:
             raise Exception("SQL_CONNECTION_STRING environment variable is required")
         
-        # Convert to pyodbc format
-        conn_str = conn_str.replace('Server=tcp:', 'DRIVER={ODBC Driver 18 for SQL Server};SERVER=tcp:')
-        conn_str = conn_str.replace('User Id=', 'UID=')
-        conn_str = conn_str.replace('Password=', 'PWD=')
-        conn_str = conn_str.replace('Encrypt=True', 'Encrypt=yes')
-        conn_str = conn_str.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
-        
+        # Try different connection approaches
         # Use Azure Identity for authentication
         credential = identity.DefaultAzureCredential(exclude_interactive_browser_credential=False)
         token_bytes = credential.get_token("https://database.windows.net/.default").token.encode("UTF-16-LE")
         token_struct = struct.pack(f'<I{len(token_bytes)}s', len(token_bytes), token_bytes)
-        SQL_COPT_SS_ACCESS_TOKEN = 1256  # This connection option is defined by microsoft in msodbcsql.h
-        conn = pyodbc.connect(conn_str, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-        return conn
+        SQL_COPT_SS_ACCESS_TOKEN = 1256
+        
+        try:
+            # Approach 1: Try with ODBC Driver 18
+            conn_str_18 = conn_str.replace('Server=tcp:', 'DRIVER={ODBC Driver 18 for SQL Server};SERVER=tcp:')
+            conn_str_18 = conn_str_18.replace('User Id=', 'UID=')
+            conn_str_18 = conn_str_18.replace('Password=', 'PWD=')
+            conn_str_18 = conn_str_18.replace('Encrypt=True', 'Encrypt=yes')
+            conn_str_18 = conn_str_18.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
+            
+            conn = pyodbc.connect(conn_str_18, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+            return conn
+        except Exception as e1:
+            logging.warning("ODBC Driver 18 failed: %s", str(e1))
+            
+            try:
+                # Approach 2: Try with ODBC Driver 17
+                conn_str_17 = conn_str.replace('Server=tcp:', 'DRIVER={ODBC Driver 17 for SQL Server};SERVER=tcp:')
+                conn_str_17 = conn_str_17.replace('User Id=', 'UID=')
+                conn_str_17 = conn_str_17.replace('Password=', 'PWD=')
+                conn_str_17 = conn_str_17.replace('Encrypt=True', 'Encrypt=yes')
+                conn_str_17 = conn_str_17.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
+                
+                conn = pyodbc.connect(conn_str_17, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+                return conn
+            except Exception as e2:
+                logging.warning("ODBC Driver 17 failed: %s", str(e2))
+                
+                try:
+                    # Approach 3: Try with SQL Server driver
+                    conn_str_sql = conn_str.replace('Server=tcp:', 'DRIVER={SQL Server};SERVER=tcp:')
+                    conn_str_sql = conn_str_sql.replace('User Id=', 'UID=')
+                    conn_str_sql = conn_str_sql.replace('Password=', 'PWD=')
+                    conn_str_sql = conn_str_sql.replace('Encrypt=True', 'Encrypt=yes')
+                    conn_str_sql = conn_str_sql.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
+                    
+                    conn = pyodbc.connect(conn_str_sql, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+                    return conn
+                except Exception as e3:
+                    logging.error("All ODBC drivers failed: %s, %s, %s", str(e1), str(e2), str(e3))
+                    raise Exception("No compatible ODBC driver found")
         
     except Exception as e:
         logging.error("Failed to connect to database: ?", e)
