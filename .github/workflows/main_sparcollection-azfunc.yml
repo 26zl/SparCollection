@@ -102,3 +102,9 @@ jobs:
           slot-name: 'Production'
           package: azure_functions-release.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1B4D64B0DA7A426DB840FFB7B3DF962E }}
+
+      - name: Set DATA_ROOT environment variable
+        uses: Azure/CLI@v1
+        with:
+          inlineScript: |
+            az functionapp config appsettings set --name sparcollection-azfunc-fffjcpb5cphnfhac --resource-group GruppeDigitalAsgn1-func-NorthEuropewebspace --settings DATA_ROOT=data

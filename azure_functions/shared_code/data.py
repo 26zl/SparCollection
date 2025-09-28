@@ -5,8 +5,9 @@ import os
 from pathlib import Path
 from typing import Any
 
-DEFAULT_DATA_ROOT = Path(__file__).resolve().parent.parent / "data"
-DATA_ROOT = Path(os.environ.get("DATA_ROOT", DEFAULT_DATA_ROOT))
+# Use relative path from current working directory in Azure Functions
+DEFAULT_DATA_ROOT = Path("data")
+DATA_ROOT = Path(os.environ.get("DATA_ROOT", str(DEFAULT_DATA_ROOT)))
 
 
 def load_json(name: str) -> Any:
