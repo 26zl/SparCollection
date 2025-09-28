@@ -172,7 +172,7 @@ def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional
     """Update an item in a list"""
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 # Update the item
                 cursor.execute("""
                     UPDATE spar.list_items 
@@ -214,7 +214,7 @@ def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[
     """Mark a list as completed"""
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 # Update the list status
                 cursor.execute("""
                     UPDATE spar.lists 
@@ -258,7 +258,7 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
     
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 # Create the list
                 cursor.execute("""
                     INSERT INTO spar.lists (id, shop_id, status, created_at)
@@ -299,7 +299,7 @@ def delete_list(list_id: str, shop_id: Optional[str] = None) -> bool:
     """Delete a shopping list"""
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 if shop_id:
                     cursor.execute("DELETE FROM spar.lists WHERE id = %s AND shop_id = %s", (list_id, shop_id))
                 else:
