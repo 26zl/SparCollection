@@ -5,18 +5,16 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-# Try to import pyodbc and azure.identity, fallback to in-memory if not available
+# Try to import pymssql, fallback to in-memory if not available
 try:
-    import pyodbc
-    import struct
-    from azure import identity
+    import pymssql
     HAS_DATABASE = True
 except ImportError:
     HAS_DATABASE = False
-    logging.warning("pyodbc or azure.identity not available, using in-memory fallback")
+    logging.warning("pymssql not available, using in-memory fallback")
 
 def get_connection():
-    """Get database connection using Azure Identity"""
+    """Get database connection using pymssql"""
     try:
         # Get connection string from environment
         conn_str = os.getenv("SQL_CONNECTION_STRING")
@@ -40,55 +38,27 @@ def get_connection():
         if not conn_str:
             raise Exception("SQL_CONNECTION_STRING environment variable is required")
         
-        # Try different connection approaches
-        # Use Azure Identity for authentication
-        credential = identity.DefaultAzureCredential(exclude_interactive_browser_credential=False)
-        token_bytes = credential.get_token("https://database.windows.net/.default").token.encode("UTF-16-LE")
-        token_struct = struct.pack(f'<I{len(token_bytes)}s', len(token_bytes), token_bytes)
-        SQL_COPT_SS_ACCESS_TOKEN = 1256
+        # Parse connection string
+        import re
+        server_match = re.search(r'Server=tcp:([^,]+),(\d+)', conn_str)
+        database_match = re.search(r'Database=([^;]+)', conn_str)
+        user_match = re.search(r'User Id=([^;]+)', conn_str)
+        password_match = re.search(r'Password=([^;]+)', conn_str)
         
-        try:
-            # Approach 1: Try with ODBC Driver 18
-            conn_str_18 = conn_str.replace('Server=tcp:', 'DRIVER={ODBC Driver 18 for SQL Server};SERVER=tcp:')
-            conn_str_18 = conn_str_18.replace('User Id=', 'UID=')
-            conn_str_18 = conn_str_18.replace('Password=', 'PWD=')
-            conn_str_18 = conn_str_18.replace('Encrypt=True', 'Encrypt=yes')
-            conn_str_18 = conn_str_18.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
-            
-            conn = pyodbc.connect(conn_str_18, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
+        if all([server_match, database_match, user_match, password_match]):
+            conn = pymssql.connect(
+                server=server_match.group(1),
+                port=int(server_match.group(2)),
+                database=database_match.group(1),
+                user=user_match.group(1),
+                password=password_match.group(1)
+            )
             return conn
-        except Exception as e1:
-            logging.warning("ODBC Driver 18 failed: %s", str(e1))
-            
-            try:
-                # Approach 2: Try with ODBC Driver 17
-                conn_str_17 = conn_str.replace('Server=tcp:', 'DRIVER={ODBC Driver 17 for SQL Server};SERVER=tcp:')
-                conn_str_17 = conn_str_17.replace('User Id=', 'UID=')
-                conn_str_17 = conn_str_17.replace('Password=', 'PWD=')
-                conn_str_17 = conn_str_17.replace('Encrypt=True', 'Encrypt=yes')
-                conn_str_17 = conn_str_17.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
-                
-                conn = pyodbc.connect(conn_str_17, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-                return conn
-            except Exception as e2:
-                logging.warning("ODBC Driver 17 failed: %s", str(e2))
-                
-                try:
-                    # Approach 3: Try with SQL Server driver
-                    conn_str_sql = conn_str.replace('Server=tcp:', 'DRIVER={SQL Server};SERVER=tcp:')
-                    conn_str_sql = conn_str_sql.replace('User Id=', 'UID=')
-                    conn_str_sql = conn_str_sql.replace('Password=', 'PWD=')
-                    conn_str_sql = conn_str_sql.replace('Encrypt=True', 'Encrypt=yes')
-                    conn_str_sql = conn_str_sql.replace('TrustServerCertificate=False', 'TrustServerCertificate=no')
-                    
-                    conn = pyodbc.connect(conn_str_sql, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-                    return conn
-                except Exception as e3:
-                    logging.error("All ODBC drivers failed: %s, %s, %s", str(e1), str(e2), str(e3))
-                    raise Exception("No compatible ODBC driver found")
+        
+        raise Exception("Invalid SQL_CONNECTION_STRING format")
         
     except Exception as e:
-        logging.error("Failed to connect to database: ?", e)
+        logging.error("Failed to connect to database: %s", e)
         raise
 
 def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -98,12 +68,12 @@ def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
     
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 if shop_id:
                     cursor.execute("""
                         SELECT id, shop_id, status, created_at, completed_at, completed_by
                         FROM spar.lists 
-                        WHERE shop_id = ? 
+                        WHERE shop_id = %s 
                         ORDER BY created_at DESC
                     """, (shop_id,))
                 else:
@@ -116,12 +86,12 @@ def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
                 lists = []
                 for row in cursor.fetchall():
                     list_data = {
-                        "id": row[0],
-                        "shop_id": row[1],
-                        "status": row[2],
-                        "created_at": row[3].isoformat() + "Z" if row[3] else None,
-                        "completed_at": row[4].isoformat() + "Z" if row[4] else None,
-                        "completed_by": row[5],
+                        "id": row["id"],
+                        "shop_id": row["shop_id"],
+                        "status": row["status"],
+                        "created_at": row["created_at"].isoformat() + "Z" if row["created_at"] else None,
+                        "completed_at": row["completed_at"].isoformat() + "Z" if row["completed_at"] else None,
+                        "completed_by": row["completed_by"],
                         "items": []
                     }
                     
@@ -129,27 +99,27 @@ def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
                     cursor.execute("""
                         SELECT id, sku, name, qty_requested, qty_collected, status, version
                         FROM spar.list_items 
-                        WHERE list_id = ? 
+                        WHERE list_id = %s 
                         ORDER BY id
-                    """, (row[0],))
+                    """, (row["id"],))
                     
                     for item_row in cursor.fetchall():
                         item_data = {
-                            "id": item_row[0],
-                            "name": item_row[2],
-                            "qty": item_row[3],
-                            "status": item_row[5],
-                            "version": item_row[6]
+                            "id": item_row["id"],
+                            "name": item_row["name"],
+                            "qty": item_row["qty_requested"],
+                            "status": item_row["status"],
+                            "version": item_row["version"]
                         }
-                        if item_row[4] is not None:
-                            item_data["qty_collected"] = item_row[4]
+                        if item_row["qty_collected"] is not None:
+                            item_data["qty_collected"] = item_row["qty_collected"]
                         list_data["items"].append(item_data)
                     
                     lists.append(list_data)
                 
                 return lists
     except Exception as e:
-        logging.error("Error fetching lists: ?", e)
+        logging.error("Error fetching lists: %s", e)
         raise
 
 def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
@@ -159,18 +129,18 @@ def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, 
     
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 if shop_id:
                     cursor.execute("""
                         SELECT id, shop_id, status, created_at, completed_at, completed_by
                         FROM spar.lists 
-                        WHERE id = ? AND shop_id = ?
+                        WHERE id = %s AND shop_id = %s
                     """, (list_id, shop_id))
                 else:
                     cursor.execute("""
                         SELECT id, shop_id, status, created_at, completed_at, completed_by
                         FROM spar.lists 
-                        WHERE id = ?
+                        WHERE id = %s
                     """, (list_id,))
                 
                 row = cursor.fetchone()
@@ -191,7 +161,7 @@ def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, 
                 cursor.execute("""
                     SELECT id, sku, name, qty_requested, qty_collected, status, version
                     FROM spar.list_items 
-                    WHERE list_id = ? 
+                    WHERE list_id = %s 
                     ORDER BY id
                 """, (list_id,))
                 
@@ -209,19 +179,19 @@ def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, 
                 
                 return list_data
     except Exception as e:
-        logging.error("Error fetching list ?: ?", list_id, e)
+        logging.error("Error fetching list %s: %s", list_id, e)
         raise
 
 def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional[int] = None) -> Optional[Dict[str, Any]]:
     """Update an item in a list"""
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 # Update the item
                 cursor.execute("""
                     UPDATE spar.list_items 
-                    SET status = ?, qty_collected = COALESCE(?, qty_collected), version = version + 1
-                    WHERE list_id = ? AND id = ?
+                    SET status = %s, qty_collected = COALESCE(%s, qty_collected), version = version + 1
+                    WHERE list_id = %s AND id = %s
                 """, (status, qty_collected, list_id, item_id))
                 
                 if cursor.rowcount == 0:
@@ -231,7 +201,7 @@ def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional
                 cursor.execute("""
                     SELECT id, sku, name, qty_requested, qty_collected, status, version
                     FROM spar.list_items 
-                    WHERE list_id = ? AND id = ?
+                    WHERE list_id = %s AND id = %s
                 """, (list_id, item_id))
                 
                 row = cursor.fetchone()
@@ -251,19 +221,19 @@ def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional
                 conn.commit()
                 return item_data
     except Exception as e:
-        logging.error("Error updating item ? in list ?: ?", item_id, list_id, e)
+        logging.error("Error updating item %s in list %s: %s", item_id, list_id, e)
         raise
 
 def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Mark a list as completed"""
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 # Update the list status
                 cursor.execute("""
                     UPDATE spar.lists 
-                    SET status = 'completed', completed_at = SYSUTCDATETIME(), completed_by = ?
-                    WHERE id = ?
+                    SET status = 'completed', completed_at = SYSUTCDATETIME(), completed_by = %s
+                    WHERE id = %s
                 """, (completed_by, list_id))
                 
                 if cursor.rowcount == 0:
@@ -273,7 +243,7 @@ def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[
                 cursor.execute("""
                     SELECT id, shop_id, status, completed_at, completed_by
                     FROM spar.lists 
-                    WHERE id = ?
+                    WHERE id = %s
                 """, (list_id,))
                 
                 row = cursor.fetchone()
@@ -290,7 +260,7 @@ def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[
                 conn.commit()
                 return result
     except Exception as e:
-        logging.error("Error completing list ?: ?", list_id, e)
+        logging.error("Error completing list %s: %s", list_id, e)
         raise
 
 def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -302,11 +272,11 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
     
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 # Create the list
                 cursor.execute("""
                     INSERT INTO spar.lists (id, shop_id, status, created_at)
-                    VALUES (?, ?, 'active', SYSUTCDATETIME())
+                    VALUES (%s, %s, 'active', SYSUTCDATETIME())
                 """, (list_id, shop_id))
                 
                 # Create items
@@ -314,7 +284,7 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
                     for item in items:
                         cursor.execute("""
                             INSERT INTO spar.list_items (id, list_id, sku, name, qty_requested, status, version)
-                            VALUES (?, ?, ?, ?, ?, ?, 1)
+                            VALUES (%s, %s, %s, %s, %s, %s, 1)
                         """, (
                             item.get("id", str(uuid.uuid4())[:12]),
                             list_id,
@@ -336,24 +306,24 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
                     "items": items or []
                 }
     except Exception as e:
-        logging.error("Error creating list: ?", e)
+        logging.error("Error creating list: %s", e)
         raise
 
 def delete_list(list_id: str, shop_id: Optional[str] = None) -> bool:
     """Delete a shopping list"""
     try:
         with get_connection() as conn:
-            with conn.cursor() as cursor:
+            with conn.cursor(as_dict=True) as cursor:
                 if shop_id:
-                    cursor.execute("DELETE FROM spar.lists WHERE id = ? AND shop_id = ?", (list_id, shop_id))
+                    cursor.execute("DELETE FROM spar.lists WHERE id = %s AND shop_id = %s", (list_id, shop_id))
                 else:
-                    cursor.execute("DELETE FROM spar.lists WHERE id = ?", (list_id,))
+                    cursor.execute("DELETE FROM spar.lists WHERE id = %s", (list_id,))
                 
                 success = cursor.rowcount > 0
                 conn.commit()
                 return success
     except Exception as e:
-        logging.error("Error deleting list ?: ?", list_id, e)
+        logging.error("Error deleting list %s: %s", list_id, e)
         raise
 
 # Fallback functions for when database is not available
