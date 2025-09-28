@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Spar Collection - Shopping List Management System",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "cd frontend && npm run dev",
