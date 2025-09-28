@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install dependencies (validation only)
+      - name: Install dependencies
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
         run: |
           python -m pip install --upgrade pip
@@ -36,7 +36,10 @@ jobs:
 
       - name: Create deployment package
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-        run: zip -r ../azure_functions-release.zip .
+        run: |
+          # Install dependencies to .python_packages for Azure Functions
+          pip install --target .python_packages/site-packages -r requirements.txt
+          zip -r ../azure_functions-release.zip .
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
