@@ -9,25 +9,25 @@
         "id": "item-100",
         "name": "Melk 1L",
         "qty": 2,
-        "status": "unavailable",
-        "version": 5
+        "status": "collected",
+        "version": 9
       },
       {
         "id": "item-101",
         "name": "Brød grovt",
         "qty": 1,
-        "status": "unavailable",
-        "version": 4
+        "status": "collected",
+        "version": 8
       },
       {
         "id": "item-102",
         "name": "Epler",
         "qty": 6,
         "status": "collected",
-        "version": 5
+        "version": 8
       }
     ],
-    "completed_at": "2025-09-27T07:44:53.122774+00:00"
+    "completed_at": "2025-09-28T03:06:31.346841+00:00"
   },
   {
     "id": "def456",
