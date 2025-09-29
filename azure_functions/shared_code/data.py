@@ -49,7 +49,8 @@ def get_connection():
             credential = DefaultAzureCredential()
             token = credential.get_token("https://database.windows.net/.default")
             
-            # Try different ODBC drivers
+            # Try different authentication methods and drivers
+            auth_methods = ["ActiveDirectoryDefault", "ActiveDirectoryInteractive"]
             drivers_to_try = [
                 "ODBC Driver 18 for SQL Server",
                 "ODBC Driver 17 for SQL Server", 
@@ -57,27 +58,28 @@ def get_connection():
                 "SQL Server"
             ]
             
-            for driver in drivers_to_try:
-                try:
-                    connection_string = (
-                        f"Driver={{{driver}}};"
-                        f"Server={server}.database.windows.net;"
-                        f"Database={database};"
-                        f"Authentication=ActiveDirectoryDefault;"
-                        f"Encrypt=yes;"
-                        f"TrustServerCertificate=no;"
-                        f"Connection Timeout=30;"
-                    )
-                    
-                    conn = pyodbc.connect(connection_string)
-                    logging.info(f"Using Azure AD authentication with {driver}")
-                    return conn
-                except Exception as driver_error:
-                    logging.debug(f"Driver {driver} failed: {driver_error}")
-                    continue
+            for auth_method in auth_methods:
+                for driver in drivers_to_try:
+                    try:
+                        connection_string = (
+                            f"Driver={{{driver}}};"
+                            f"Server={server}.database.windows.net;"
+                            f"Database={database};"
+                            f"Encrypt=yes;"
+                            f"TrustServerCertificate=no;"
+                            f"Authentication={auth_method};"
+                            f"Connection Timeout=30;"
+                        )
+                        
+                        conn = pyodbc.connect(connection_string)
+                        logging.info(f"Using Azure AD authentication with {driver} and {auth_method}")
+                        return conn
+                    except Exception as driver_error:
+                        logging.debug(f"Driver {driver} with {auth_method} failed: {driver_error}")
+                        continue
             
             # If all drivers failed, raise the last error
-            raise Exception("All ODBC drivers failed")
+            raise Exception("All ODBC drivers and authentication methods failed")
             
         except Exception as e:
             logging.warning("Azure AD authentication failed: %s", e)
