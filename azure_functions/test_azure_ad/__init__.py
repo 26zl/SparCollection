@@ -1,8 +1,14 @@
 import json
 import logging
 import os
+import sys
 
 import azure.functions as func
+
+# Add the site-packages path to sys.path for Azure Functions
+site_packages_path = os.path.join(os.getcwd(), ".python_packages", "site-packages")
+if site_packages_path not in sys.path:
+    sys.path.insert(0, site_packages_path)
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Testing Azure AD authentication...')
