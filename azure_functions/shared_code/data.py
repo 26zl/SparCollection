@@ -15,22 +15,25 @@ if site_packages_path not in sys.path:
     sys.path.insert(0, site_packages_path)
 
 try:
-    import pyodbc
+    import psycopg2
     from azure.identity import DefaultAzureCredential
     HAS_DATABASE = True
 except ImportError:
     HAS_DATABASE = False
-    logging.warning("pyodbc or azure-identity not available, using in-memory fallback")
+    logging.warning("psycopg2 or azure-identity not available, using in-memory fallback")
 
 def get_connection():
-    """Get database connection using Azure AD authentication"""
+    """Get database connection using PostgreSQL"""
     try:
         # Get database connection details from environment variables
-        server = os.getenv("AZURE_SQL_SERVER")
-        database = os.getenv("AZURE_SQL_DATABASE")
+        host = os.getenv("POSTGRES_HOST")
+        database = os.getenv("POSTGRES_DATABASE")
+        user = os.getenv("POSTGRES_USER")
+        password = os.getenv("POSTGRES_PASSWORD")
+        port = os.getenv("POSTGRES_PORT", "5432")
         
         # Try to load from local.settings.json for local development
-        if not all([server, database]):
+        if not all([host, database, user, password]):
             import json
             try:
                 paths = ['local.settings.json', '../local.settings.json', '/Users/lenti/Local/SparCollection/azure_functions/local.settings.json']
@@ -39,58 +42,35 @@ def get_connection():
                         with open(path, 'r') as f:
                             settings = json.load(f)
                             values = settings.get('Values', {})
-                            server = server or values.get('AZURE_SQL_SERVER')
-                            database = database or values.get('AZURE_SQL_DATABASE')
-                            if all([server, database]):
+                            host = host or values.get('POSTGRES_HOST')
+                            database = database or values.get('POSTGRES_DATABASE')
+                            user = user or values.get('POSTGRES_USER')
+                            password = password or values.get('POSTGRES_PASSWORD')
+                            port = port or values.get('POSTGRES_PORT', '5432')
+                            if all([host, database, user, password]):
                                 break
                     except:
                         continue
             except:
                 pass
         
-        if not all([server, database]):
-            raise Exception("Database environment variables are required: AZURE_SQL_SERVER, AZURE_SQL_DATABASE")
+        if not all([host, database, user, password]):
+            raise Exception("Database environment variables are required: POSTGRES_HOST, POSTGRES_DATABASE, POSTGRES_USER, POSTGRES_PASSWORD")
         
-        # Use Azure AD authentication with pyodbc
+        # Connect to PostgreSQL
         try:
-            # Get Azure AD token
-            credential = DefaultAzureCredential()
-            token = credential.get_token("https://database.windows.net/.default")
-            
-            # Try different authentication methods and drivers
-            auth_methods = ["ActiveDirectoryDefault", "ActiveDirectoryInteractive"]
-            drivers_to_try = [
-                "ODBC Driver 18 for SQL Server",
-                "ODBC Driver 17 for SQL Server", 
-                "FreeTDS",
-                "SQL Server"
-            ]
-            
-            for auth_method in auth_methods:
-                for driver in drivers_to_try:
-                    try:
-                        connection_string = (
-                            f"Driver={{{driver}}};"
-                            f"Server={server}.database.windows.net;"
-                            f"Database={database};"
-                            f"Encrypt=yes;"
-                            f"TrustServerCertificate=no;"
-                            f"Authentication={auth_method};"
-                            f"Connection Timeout=30;"
-                        )
-                        
-                        conn = pyodbc.connect(connection_string)
-                        logging.info(f"Using Azure AD authentication with {driver} and {auth_method}")
-                        return conn
-                    except Exception as driver_error:
-                        logging.debug(f"Driver {driver} with {auth_method} failed: {driver_error}")
-                        continue
-            
-            # If all drivers failed, raise the last error
-            raise Exception("All ODBC drivers and authentication methods failed")
-            
+            conn = psycopg2.connect(
+                host=host,
+                database=database,
+                user=user,
+                password=password,
+                port=port,
+                sslmode='require'
+            )
+            logging.info("Connected to PostgreSQL database")
+            return conn
         except Exception as e:
-            logging.warning("Azure AD authentication failed: %s", e)
+            logging.warning("PostgreSQL connection failed: %s", e)
             # For local development, we'll use fallback data
             # In production, this should raise an exception
             if os.getenv("FUNCTIONS_WORKER_RUNTIME"):
@@ -117,7 +97,7 @@ def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
                 cursor.execute("""
                     SELECT id, shop_id, status, created_at, completed_at, completed_by
                     FROM spar.lists 
-                    WHERE shop_id = ? 
+                    WHERE shop_id = %s 
                     ORDER BY created_at DESC
                 """, (shop_id,))
             else:
@@ -145,7 +125,7 @@ def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
                 cursor.execute("""
                     SELECT id, sku, name, qty_requested, qty_collected, status, version
                     FROM spar.list_items 
-                    WHERE list_id = ? 
+                    WHERE list_id = %s 
                     ORDER BY id
                 """, (row_dict["id"],))
                 
@@ -182,13 +162,13 @@ def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, 
                 cursor.execute("""
                     SELECT id, shop_id, status, created_at, completed_at, completed_by
                     FROM spar.lists 
-                    WHERE id = ? AND shop_id = ?
+                    WHERE id = %s AND shop_id = %s
                 """, (list_id, shop_id))
             else:
                 cursor.execute("""
                     SELECT id, shop_id, status, created_at, completed_at, completed_by
                     FROM spar.lists 
-                    WHERE id = ?
+                    WHERE id = %s
                 """, (list_id,))
             
             columns = [column[0] for column in cursor.description]
@@ -211,7 +191,7 @@ def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, 
             cursor.execute("""
                 SELECT id, sku, name, qty_requested, qty_collected, status, version
                 FROM spar.list_items 
-                WHERE list_id = ? 
+                WHERE list_id = %s 
                 ORDER BY id
             """, (list_id,))
             
@@ -242,8 +222,8 @@ def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional
             # Update the item
             cursor.execute("""
                 UPDATE spar.list_items 
-                SET status = ?, qty_collected = COALESCE(?, qty_collected), version = version + 1
-                WHERE list_id = ? AND id = ?
+                SET status = %s, qty_collected = COALESCE(%s, qty_collected), version = version + 1
+                WHERE list_id = %s AND id = %s
             """, (status, qty_collected, list_id, item_id))
             
             if cursor.rowcount == 0:
@@ -253,7 +233,7 @@ def update_item(list_id: str, item_id: str, status: str, qty_collected: Optional
             cursor.execute("""
                 SELECT id, sku, name, qty_requested, qty_collected, status, version
                 FROM spar.list_items 
-                WHERE list_id = ? AND id = ?
+                WHERE list_id = %s AND id = %s
             """, (list_id, item_id))
             
             columns = [column[0] for column in cursor.description]
@@ -286,8 +266,8 @@ def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[
             # Update the list status
             cursor.execute("""
                 UPDATE spar.lists 
-                SET status = 'completed', completed_at = GETUTCDATE(), completed_by = ?
-                WHERE id = ?
+                SET status = 'completed', completed_at = NOW(), completed_by = %s
+                WHERE id = %s
             """, (completed_by, list_id))
             
             if cursor.rowcount == 0:
@@ -297,7 +277,7 @@ def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[
             cursor.execute("""
                 SELECT id, shop_id, status, completed_at, completed_by
                 FROM spar.lists 
-                WHERE id = ?
+                WHERE id = %s
             """, (list_id,))
             
             columns = [column[0] for column in cursor.description]
@@ -332,7 +312,7 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
             # Create the list
             cursor.execute("""
                 INSERT INTO spar.lists (id, shop_id, status, created_at)
-                VALUES (?, ?, 'active', GETUTCDATE())
+                VALUES (%s, %s, 'active', NOW())
             """, (list_id, shop_id))
             
             # Create items
@@ -340,7 +320,7 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
                 for item in items:
                     cursor.execute("""
                         INSERT INTO spar.list_items (id, list_id, sku, name, qty_requested, status, version)
-                        VALUES (?, ?, ?, ?, ?, ?, 1)
+                        VALUES (%s, %s, %s, %s, %s, %s, 1)
                     """, (
                         item.get("id", str(uuid.uuid4())[:12]),
                         list_id,
@@ -371,9 +351,9 @@ def delete_list(list_id: str, shop_id: Optional[str] = None) -> bool:
         with get_connection() as conn:
             cursor = conn.cursor()
             if shop_id:
-                cursor.execute("DELETE FROM spar.lists WHERE id = ? AND shop_id = ?", (list_id, shop_id))
+                cursor.execute("DELETE FROM spar.lists WHERE id = %s AND shop_id = %s", (list_id, shop_id))
             else:
-                cursor.execute("DELETE FROM spar.lists WHERE id = ?", (list_id,))
+                cursor.execute("DELETE FROM spar.lists WHERE id = %s", (list_id,))
             
             success = cursor.rowcount > 0
             conn.commit()
