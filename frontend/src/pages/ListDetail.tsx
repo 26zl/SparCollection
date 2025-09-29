@@ -51,7 +51,7 @@ export default function ListDetailPage() {
       const data = await apiGet<ShoppingList>(listRoute(listId));
       setList(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Klarte ikke å hente listen');
+      setError(err instanceof Error ? err.message : 'Failed to fetch list');
       setList(null);
     } finally {
       setLoading(false);
@@ -87,9 +87,9 @@ export default function ListDetailPage() {
     try {
       await apiPost(itemUpdateRoute(id, itemId), { status: newStatus });
       await loadList(id);
-      setMessage('Vare oppdatert.');
+      setMessage('Item updated.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Klarte ikke å oppdatere varen');
+      setError(err instanceof Error ? err.message : 'Failed to update item');
     } finally {
       setActiveItem(null);
     }
@@ -106,9 +106,9 @@ export default function ListDetailPage() {
       const result = await apiPost<CompletionInfo>(listCompleteRoute(id), {});
       setCompletionInfo(result);
       await loadList(id);
-      setMessage('Fullføring registrert.');
+      setMessage('Completion registered.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Klarte ikke å fullføre listen');
+      setError(err instanceof Error ? err.message : 'Failed to complete list');
       setCompletionInfo(null);
     } finally {
       setCompleting(false);
@@ -118,16 +118,16 @@ export default function ListDetailPage() {
   return (
     <section className="page">
       <header className="page__intro">
-        <h1>Liste {id ?? 'ukjent'}</h1>
-        <p>Marker varer som plukket eller utilgjengelig underveis.</p>
+        <h1>List {id ?? 'unknown'}</h1>
+        <p>Mark items as collected or unavailable as you go.</p>
         <div className="page__summary">
-          <span>Venter: {summary.pending}</span>
-          <span>Plukket: {summary.collected}</span>
-          <span>Utilgjengelig: {summary.unavailable}</span>
+          <span>Pending: {summary.pending}</span>
+          <span>Collected: {summary.collected}</span>
+          <span>Unavailable: {summary.unavailable}</span>
         </div>
       </header>
 
-      {loading && <p>Laster liste…</p>}
+      {loading && <p>Loading list…</p>}
       {error && <p className="text--error">{error}</p>}
       {message && <p className="text--info">{message}</p>}
 
@@ -150,7 +150,7 @@ export default function ListDetailPage() {
 
           <div className="list__complete">
             <button type="button" onClick={handleComplete} disabled={completing} className="btn btn--primary">
-              {completing ? 'Fullfører…' : 'Fullfør liste'}
+              {completing ? 'Completing…' : 'Complete list'}
             </button>
           </div>
 

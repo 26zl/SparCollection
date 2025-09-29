@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-# Try to import database libraries, fallback to in-memory if not available
+# Import database libraries
 import sys
 import os
 
@@ -14,13 +14,8 @@ site_packages_path = os.path.join(os.getcwd(), ".python_packages", "site-package
 if site_packages_path not in sys.path:
     sys.path.insert(0, site_packages_path)
 
-try:
-    import psycopg2
-    from azure.identity import DefaultAzureCredential
-    HAS_DATABASE = True
-except ImportError:
-    HAS_DATABASE = False
-    logging.warning("psycopg2 or azure-identity not available, using in-memory fallback")
+import psycopg2
+from azure.identity import DefaultAzureCredential
 
 def get_connection():
     """Get database connection using PostgreSQL"""
@@ -58,28 +53,16 @@ def get_connection():
             raise Exception("Database environment variables are required: POSTGRES_HOST, POSTGRES_DATABASE, POSTGRES_USER, POSTGRES_PASSWORD")
         
         # Connect to PostgreSQL
-        try:
-            conn = psycopg2.connect(
-                host=host,
-                database=database,
-                user=user,
-                password=password,
-                port=port,
-                sslmode='require'
-            )
-            logging.info("Connected to PostgreSQL database")
-            return conn
-        except Exception as e:
-            logging.warning("PostgreSQL connection failed: %s", e)
-            # For local development, we'll use fallback data
-            # In production, this should raise an exception
-            if os.getenv("FUNCTIONS_WORKER_RUNTIME"):
-                # We're in Azure Functions, so this is a real error
-                raise Exception("Database connection failed, using fallback data")
-            else:
-                # We're in local development, use fallback
-                logging.info("Local development: using fallback data")
-                raise Exception("Local development: using fallback data")
+        conn = psycopg2.connect(
+            host=host,
+            database=database,
+            user=user,
+            password=password,
+            port=port,
+            sslmode='require'
+        )
+        logging.info("Connected to PostgreSQL database")
+        return conn
         
     except Exception as e:
         logging.error("Failed to connect to database: %s", e)
@@ -87,9 +70,6 @@ def get_connection():
 
 def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Get all lists, optionally filtered by shop_id"""
-    if not HAS_DATABASE:
-        return _get_lists_fallback(shop_id)
-    
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -152,9 +132,6 @@ def get_lists(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
 
 def get_list(list_id: str, shop_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Get a specific list by ID"""
-    if not HAS_DATABASE:
-        return _get_list_fallback(list_id, shop_id or "NO-TR-001")
-    
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
@@ -362,54 +339,3 @@ def delete_list(list_id: str, shop_id: Optional[str] = None) -> bool:
         logging.error("Error deleting list %s: %s", list_id, e)
         raise
 
-# Fallback functions for when database is not available
-def _get_lists_fallback(shop_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Fallback to in-memory data when database is not available"""
-    # Sample data for fallback
-    sample_lists = [
-        {
-            "id": "abc123",
-            "shop_id": "NO-TR-001",
-            "status": "completed",
-            "created_at": "2025-09-28T21:19:57.532766Z",
-            "completed_at": "2025-09-28T21:52:11.224031Z",
-            "completed_by": "test",
-            "items": [
-                {"id": "item-100", "name": "Melk 1L", "qty": 2, "qtyCollected": 0, "status": "unavailable", "version": 4},
-                {"id": "item-101", "name": "Brød grovt", "qty": 1, "qtyCollected": 0, "status": "unavailable", "version": 2},
-                {"id": "item-102", "name": "Epler", "qty": 6, "qtyCollected": 0, "status": "unavailable", "version": 3}
-            ]
-        },
-        {
-            "id": "def456",
-            "shop_id": "NO-TR-001",
-            "status": "completed",
-            "created_at": "2025-09-28T21:19:57.564018Z",
-            "completed_at": "2025-09-28T21:52:49.009874Z",
-            "completed_by": "emp_def456",
-            "items": [
-                {"id": "item-200", "name": "Kaffekopp", "qty": 4, "qtyCollected": 0, "status": "pending", "version": 1},
-                {"id": "item-201", "name": "Tallerken", "qty": 6, "qtyCollected": 0, "status": "pending", "version": 1}
-            ]
-        }
-    ]
-    
-    if shop_id:
-        return [list_item for list_item in sample_lists if list_item["shop_id"] == shop_id]
-    return sample_lists
-
-def _get_list_fallback(list_id: str, shop_id: str) -> Optional[Dict[str, Any]]:
-    """Fallback to in-memory data when database is not available"""
-    lists = _get_lists_fallback(shop_id)
-    for list_item in lists:
-        if list_item["id"] == list_id:
-            return list_item
-    return None
-
-def init_database():
-    """Initialize database - no-op for database storage"""
-    pass
-
-def create_sample_data():
-    """Create sample data - no-op for database storage"""
-    pass

@@ -13,9 +13,9 @@ interface ItemCardProps {
 }
 
 const statusLabel: Record<ItemStatus, string> = {
-  pending: 'venter',
-  collected: 'plukket',
-  unavailable: 'utilgjengelig',
+  pending: 'pending',
+  collected: 'collected',
+  unavailable: 'unavailable',
 };
 
 const ItemCard = memo(function ItemCard({
@@ -32,17 +32,17 @@ const ItemCard = memo(function ItemCard({
       <div className="item-card__header">
         <div>
           <h2>{name}</h2>
-          <p className="item-card__meta">Vare-ID: {itemId}</p>
+          <p className="item-card__meta">Item ID: {itemId}</p>
         </div>
-        <span className="item-card__quantity">Antall: {quantity}</span>
+        <span className="item-card__quantity">Quantity: {quantity}</span>
         <span className="item-card__status">Status: {statusLabel[status]}</span>
       </div>
       <div className="item-card__actions">
         <button type="button" onClick={onCollected} disabled={disabled} className="btn btn--success">
-          Plukket
+          Collected
         </button>
         <button type="button" onClick={onUnavailable} disabled={disabled} className="btn btn--warning">
-          Utilgjengelig
+          Unavailable
         </button>
       </div>
     </li>

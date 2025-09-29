@@ -1,4 +1,4 @@
-// Enkel network-first SW – ignorer API-kall
+// Simple network-first SW – ignore API calls
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
@@ -12,14 +12,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ikke kapre API-kall—la nettleseren gå direkte til Azure Functions
+  // Don't intercept API calls—let browser go directly to Azure Functions
   try {
     const url = new URL(event.request.url);
     if (url.pathname.startsWith('/api/')) {
       return;
     }
   } catch (_) {
-    // ignorer feil i URL-parsing
+    // ignore URL parsing errors
   }
 
   event.respondWith(

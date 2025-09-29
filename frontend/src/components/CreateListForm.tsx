@@ -56,7 +56,7 @@ export default function CreateListForm({ onListCreated, onCancel }: CreateListFo
       });
       onListCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Klarte ikke å opprette listen');
+      setError(err instanceof Error ? err.message : 'Failed to create list');
     } finally {
       setLoading(false);
     }
@@ -64,30 +64,30 @@ export default function CreateListForm({ onListCreated, onCancel }: CreateListFo
 
   return (
     <div className="create-list-form">
-      <h2>Opprett ny liste</h2>
+      <h2>Create new list</h2>
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="title">Liste navn:</label>
+          <label htmlFor="title">List name:</label>
           <input
             id="title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="F.eks. Dagligvarer"
+            placeholder="e.g. Groceries"
             required
             disabled={loading}
           />
         </div>
 
         <div className="form-group">
-          <label>Varer:</label>
+          <label>Items:</label>
           {items.map((item, index) => (
             <div key={index} className="item-input">
               <input
                 type="text"
                 value={item.name}
                 onChange={(e) => updateItem(index, 'name', e.target.value)}
-                placeholder="Vare navn"
+                placeholder="Item name"
                 disabled={loading}
               />
               <input
@@ -103,7 +103,7 @@ export default function CreateListForm({ onListCreated, onCancel }: CreateListFo
                 disabled={loading || items.length === 1}
                 className="btn btn--danger btn--small"
               >
-                Fjern
+                Remove
               </button>
             </div>
           ))}
@@ -113,7 +113,7 @@ export default function CreateListForm({ onListCreated, onCancel }: CreateListFo
             disabled={loading}
             className="btn btn--secondary btn--small"
           >
-            + Legg til vare
+            + Add item
           </button>
         </div>
 
@@ -126,14 +126,14 @@ export default function CreateListForm({ onListCreated, onCancel }: CreateListFo
             disabled={loading}
             className="btn btn--secondary"
           >
-            Avbryt
+            Cancel
           </button>
           <button
             type="submit"
             disabled={loading || !title.trim()}
             className="btn btn--primary"
           >
-            {loading ? 'Oppretter...' : 'Opprett liste'}
+            {loading ? 'Creating...' : 'Create list'}
           </button>
         </div>
       </form>

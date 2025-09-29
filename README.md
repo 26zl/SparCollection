@@ -12,7 +12,7 @@ A modern web application for managing shopping lists, built with React frontend 
 
 ### Backend
 - **Technology**: Azure Functions (Python)
-- **Database**: Azure SQL Database
+- **Database**: PostgreSQL (Azure Database for PostgreSQL)
 - **URL**: https://sparcollection-azfunc-fffjcpb5cphnfhac.northeurope-01.azurewebsites.net
 - **Features**: RESTful API, event publishing, payment processing
 
@@ -83,21 +83,22 @@ npm run dev
 ## 🗄️ Database Schema
 
 ### spar.lists Table
-- `id` (NVARCHAR) - Primary key
-- `shop_id` (NVARCHAR) - Shop identifier
-- `status` (NVARCHAR) - active/completed
-- `created_at` (DATETIME2) - Creation timestamp
-- `completed_at` (DATETIME2) - Completion timestamp
-- `completed_by` (NVARCHAR) - Employee ID who completed
+- `id` (VARCHAR) - Primary key
+- `shop_id` (VARCHAR) - Shop identifier
+- `status` (VARCHAR) - active/completed
+- `created_at` (TIMESTAMP) - Creation timestamp
+- `completed_at` (TIMESTAMP) - Completion timestamp
+- `completed_by` (VARCHAR) - Employee ID who completed
 
 ### spar.list_items Table
-- `id` (NVARCHAR) - Primary key
-- `list_id` (NVARCHAR) - Foreign key to lists
-- `name` (NVARCHAR) - Item name
-- `qty_requested` (INT) - Requested quantity
-- `qty_collected` (INT) - Collected quantity
-- `status` (NVARCHAR) - pending/collected/unavailable
-- `version` (INT) - Version for optimistic locking
+- `id` (VARCHAR) - Primary key
+- `list_id` (VARCHAR) - Foreign key to lists
+- `sku` (VARCHAR) - Item SKU
+- `name` (VARCHAR) - Item name
+- `qty_requested` (INTEGER) - Requested quantity
+- `qty_collected` (INTEGER) - Collected quantity
+- `status` (VARCHAR) - pending/collected/unavailable
+- `version` (INTEGER) - Version for optimistic locking
 
 ## 🛠️ Development
 
@@ -106,6 +107,7 @@ npm run dev
 - Python 3.10+
 - Azure Functions Core Tools
 - Azure CLI
+- PostgreSQL client libraries (psycopg2)
 
 ### Local Development
 
@@ -142,7 +144,11 @@ npm run dev
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "python",
-    "SQL_CONNECTION_STRING": "Server=tcp:sparcollection-web-server.database.windows.net,1433;Database=sparcollection-web-database;User Id=sparcollection-web-server-admin;Password=QZ4$cNUS4$0weaBP;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
+    "POSTGRES_HOST": "your-postgres-host.postgres.database.azure.com",
+    "POSTGRES_DATABASE": "sparcollection",
+    "POSTGRES_USER": "your-username",
+    "POSTGRES_PASSWORD": "your-password",
+    "POSTGRES_PORT": "5432",
     "SERVICEBUS_CONNECTION": "Endpoint=sb://sparcollectionbus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=aPBjWbFZuIL6NI4yQ4hxjWa2+umGWtSdV+ASbNhCJ/c=",
     "SERVICEBUS_QUEUE_NAME": "list-updates"
   }
@@ -160,7 +166,7 @@ The application uses GitHub Actions for automated deployment:
 2. **Backend Deployment** (`.github/workflows/main_sparcollection-azfunc.yml`)
    - Installs Python dependencies
    - Deploys to Azure Functions
-   - Sets SQL connection string
+   - Sets PostgreSQL connection variables
 
 ## 🔧 Configuration
 
@@ -170,8 +176,8 @@ The Azure Functions are configured to allow requests from:
 - `https://sparcollection-web-faa4hqd6hxbhaqgm.northeurope-01.azurewebsites.net` (production)
 
 ### Database Connection
-- Uses Azure SQL Database with SQL Server authentication
-- Connection string is set automatically during deployment
+- Uses Azure Database for PostgreSQL
+- Connection variables are set automatically during deployment
 - Database tables are created manually in Azure Portal
 
 ## 🐛 Troubleshooting
@@ -184,7 +190,7 @@ The Azure Functions are configured to allow requests from:
 
 2. **HTTP 500 errors in production**
    - Check Azure Portal logs for detailed error messages
-   - Verify SQL connection string is set correctly
+   - Verify PostgreSQL connection variables are set correctly
    - Ensure database exists and is accessible
 
 3. **CORS errors**
@@ -194,7 +200,7 @@ The Azure Functions are configured to allow requests from:
 ### Logs
 - **Frontend**: Browser Developer Tools → Console
 - **Backend**: Azure Portal → Function App → Monitor → Logs
-- **Database**: Azure Portal → SQL Database → Query editor
+- **Database**: Azure Portal → PostgreSQL Database → Query editor
 
 ## 📝 Features
 
@@ -229,6 +235,21 @@ This project fulfills the requirements for the Spar Collection case study:
 - ✅ Offline support with PWA
 - ✅ High SLA with Azure infrastructure
 - ✅ Queue-based list delivery via Service Bus
+
+## 🧹 Recent Updates
+
+### Database Migration (September 2025)
+- ✅ Migrated from Azure SQL Database to PostgreSQL
+- ✅ Removed all test folders and mock data
+- ✅ Cleaned up fallback logic and simplified codebase
+- ✅ Optimized database connection handling
+- ✅ Updated documentation to reflect PostgreSQL usage
+
+### Removed Components
+- Test folders: `test_db`, `test_import`, `test_azure_ad`, `test_libraries`, `debug_env`, `list_packages`
+- Mock data and fallback functions
+- Old data implementation (`data_old.py`)
+- Conditional database logic
 
 ## 🔮 Future Enhancements
 
