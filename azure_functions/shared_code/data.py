@@ -239,7 +239,7 @@ def complete_list(list_id: str, completed_by: Optional[str] = None) -> Optional[
                 # Update the list status
                 cursor.execute("""
                     UPDATE spar.lists 
-                    SET status = 'completed', completed_at = SYSUTCDATETIME(), completed_by = %s
+                    SET status = 'completed', completed_at = GETUTCDATE(), completed_by = %s
                     WHERE id = %s
                 """, (completed_by, list_id))
                 
@@ -283,7 +283,7 @@ def create_list(title: str, shop_id: str, items: List[Dict[str, Any]] = None) ->
                 # Create the list
                 cursor.execute("""
                     INSERT INTO spar.lists (id, shop_id, status, created_at)
-                    VALUES (%s, %s, 'active', SYSUTCDATETIME())
+                    VALUES (%s, %s, 'active', GETUTCDATE())
                 """, (list_id, shop_id))
                 
                 # Create items
