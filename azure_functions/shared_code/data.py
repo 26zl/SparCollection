@@ -6,6 +6,14 @@ import os
 from typing import Any, Dict, List, Optional
 
 # Try to import database libraries, fallback to in-memory if not available
+import sys
+import os
+
+# Add the site-packages path to sys.path for Azure Functions
+site_packages_path = os.path.join(os.getcwd(), ".python_packages", "site-packages")
+if site_packages_path not in sys.path:
+    sys.path.insert(0, site_packages_path)
+
 try:
     import pyodbc
     from azure.identity import DefaultAzureCredential
