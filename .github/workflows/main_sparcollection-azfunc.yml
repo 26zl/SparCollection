@@ -28,12 +28,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Microsoft ODBC Driver
+      - name: Install PostgreSQL dependencies
         run: |
-          curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft.gpg
-          echo "deb [signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/ubuntu/20.04/prod focal main" | sudo tee /etc/apt/sources.list.d/mssql-release.list
           sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+          sudo apt-get install -y libpq-dev
 
       - name: Create deployment package
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
