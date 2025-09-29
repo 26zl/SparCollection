@@ -8,13 +8,10 @@ from typing import Any, Dict, List, Optional
 # Try to import database libraries, fallback to in-memory if not available
 try:
     import pymssql
-    import requests
-    from azure import identity
     HAS_DATABASE = True
-    USE_REST_API = False  # Try pymssql first
 except ImportError:
     HAS_DATABASE = False
-    logging.warning("Database libraries not available, using in-memory fallback")
+    logging.warning("pymssql not available, using in-memory fallback")
 
 def get_connection():
     """Get database connection using separate environment variables"""
