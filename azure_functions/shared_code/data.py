@@ -5,21 +5,29 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-# Try to import pymssql, fallback to in-memory if not available
+# Try to import database libraries, fallback to in-memory if not available
 try:
     import pymssql
+    import requests
+    from azure import identity
     HAS_DATABASE = True
+    USE_REST_API = False  # Try pymssql first
 except ImportError:
     HAS_DATABASE = False
-    logging.warning("pymssql not available, using in-memory fallback")
+    logging.warning("Database libraries not available, using in-memory fallback")
 
 def get_connection():
-    """Get database connection using pymssql"""
+    """Get database connection using separate environment variables"""
     try:
-        # Get connection string from environment
-        conn_str = os.getenv("SQL_CONNECTION_STRING")
-        if not conn_str:
-            # Try to load from local.settings.json for local development
+        # Get database connection details from environment variables
+        server = os.getenv("AZURE_SQL_SERVER")
+        port = os.getenv("AZURE_SQL_PORT", "1433")
+        database = os.getenv("AZURE_SQL_DATABASE")
+        username = os.getenv("AZURE_SQL_USERNAME")
+        password = os.getenv("AZURE_SQL_PASSWORD")
+        
+        # Try to load from local.settings.json for local development
+        if not all([server, database, username, password]):
             import json
             try:
                 paths = ['local.settings.json', '../local.settings.json', '/Users/lenti/Local/SparCollection/azure_functions/local.settings.json']
@@ -27,35 +35,37 @@ def get_connection():
                     try:
                         with open(path, 'r') as f:
                             settings = json.load(f)
-                            conn_str = settings.get('Values', {}).get('SQL_CONNECTION_STRING')
-                            if conn_str:
+                            values = settings.get('Values', {})
+                            server = server or values.get('AZURE_SQL_SERVER')
+                            port = port or values.get('AZURE_SQL_PORT', '1433')
+                            database = database or values.get('AZURE_SQL_DATABASE')
+                            username = username or values.get('AZURE_SQL_USERNAME')
+                            password = password or values.get('AZURE_SQL_PASSWORD')
+                            if all([server, database, username, password]):
                                 break
                     except:
                         continue
             except:
                 pass
         
-        if not conn_str:
-            raise Exception("SQL_CONNECTION_STRING environment variable is required")
+        if not all([server, database, username, password]):
+            raise Exception("Database environment variables are required: AZURE_SQL_SERVER, AZURE_SQL_DATABASE, AZURE_SQL_USERNAME, AZURE_SQL_PASSWORD")
         
-        # Parse connection string
-        import re
-        server_match = re.search(r'Server=tcp:([^,]+),(\d+)', conn_str)
-        database_match = re.search(r'Database=([^;]+)', conn_str)
-        user_match = re.search(r'User Id=([^;]+)', conn_str)
-        password_match = re.search(r'Password=([^;]+)', conn_str)
-        
-        if all([server_match, database_match, user_match, password_match]):
+        # Try pymssql first (for local development)
+        try:
             conn = pymssql.connect(
-                server=server_match.group(1),
-                port=int(server_match.group(2)),
-                database=database_match.group(1),
-                user=user_match.group(1),
-                password=password_match.group(1)
+                server=server,
+                port=int(port),
+                database=database,
+                user=username,
+                password=password
             )
+            logging.info("Using pymssql connection")
             return conn
-        
-        raise Exception("Invalid SQL_CONNECTION_STRING format")
+        except Exception as e:
+            logging.warning("pymssql failed: %s", e)
+            # Fallback to in-memory data
+            raise Exception("Database connection failed, using fallback data")
         
     except Exception as e:
         logging.error("Failed to connect to database: %s", e)
