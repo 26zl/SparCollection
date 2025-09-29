@@ -44,11 +44,17 @@ export async function apiGet<T = unknown>(path: string, init: RequestInit = {}):
     
     return data;
   } catch (error) {
-    // If offline and requesting lists, return cached data
-    if (!offlineManager.isConnected() && path.includes('lists_get')) {
-      console.log('Offline: Using cached lists data');
-      return offlineManager.getOfflineData() as T;
+    // For GET requests, try to return cached data if available
+    if (path.includes('lists_get')) {
+      const cachedData = offlineManager.getOfflineData();
+      if (cachedData.length > 0) {
+        console.log('Request failed - using cached data:', path);
+        return cachedData as T;
+      }
     }
+    
+    // If no cached data or not a lists request, throw the error
+    console.error('Request failed with no cached data:', path, error);
     throw error;
   }
 }
@@ -64,24 +70,19 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json() as Promise<T>;
   } catch (error) {
-    // If offline, queue the update and return success
-    if (!offlineManager.isConnected()) {
-      console.log('Offline: Queuing update for', path);
-      offlineManager.storePendingUpdate({
-        method: 'POST',
-        path,
-        body
-      });
-      
-      // Return optimistic response
-      return { 
-        success: true, 
-        queued: true,
-        message: 'Update queued - will sync when online'
-      } as T;
-    }
+    // Queue ALL failed POST requests (offline OR backend errors)
+    console.log('POST request failed - queuing update:', path);
+    offlineManager.storePendingUpdate({
+      method: 'POST',
+      path,
+      body
+    });
     
-    // If online but request failed, throw the error
-    throw error;
+    // Return optimistic success
+    return { 
+      success: true, 
+      queued: true,
+      message: 'Update queued - will sync when available'
+    } as T;
   }
 }
