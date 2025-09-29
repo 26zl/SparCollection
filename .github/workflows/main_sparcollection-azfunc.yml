@@ -28,15 +28,6 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install ODBC Driver
-        run: |
-          # Install ODBC Driver 18 for SQL Server
-          curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-          curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list
-          apt-get update
-          ACCEPT_EULA=Y apt-get install -y msodbcsql18
-          apt-get install -y unixodbc-dev
-
       - name: Create deployment package
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
         run: |
