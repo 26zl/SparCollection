@@ -85,12 +85,6 @@ export default function HomePage() {
         <h1>Spar Collection</h1>
         <p>Select a list to view details and update collection status.</p>
         
-        <div className="page__status">
-          <span className="page__api">Client communicates via /api</span>
-          <span className={`status-indicator ${offlineManager.isConnected() ? 'online' : 'offline'}`}>
-            {offlineManager.isConnected() ? '🟢 Online' : '🔴 Offline'}
-          </span>
-        </div>
         <div className="page__actions">
           <button
             onClick={() => setShowCreateForm(true)}

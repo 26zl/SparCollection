@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { apiGet, apiPost, itemUpdateRoute, listCompleteRoute, listRoute } from '../api';
 import ItemCard from '../components/ItemCard';
 
@@ -35,6 +35,7 @@ type CompletionInfo = {
 
 export default function ListDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [list, setList] = useState<ShoppingList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,22 +79,47 @@ export default function ListDetailPage() {
   }, [list]);
 
   const handleUpdate = useCallback(async (itemId: string, newStatus: Exclude<ShoppingListItem['status'], 'pending'>) => {
-    if (!id) {
+    if (!id || !list) {
       return;
     }
     setActiveItem(itemId);
     setMessage(null);
     setError(null);
+    
+    // Optimistic update - update UI immediately
+    setList(prevList => {
+      if (!prevList) return prevList;
+      return {
+        ...prevList,
+        items: prevList.items.map(item => 
+          item.id === itemId 
+            ? { ...item, status: newStatus, version: item.version + 1 }
+            : item
+        )
+      };
+    });
+    
     try {
       await apiPost(itemUpdateRoute(id, itemId), { status: newStatus });
-      await loadList(id);
       setMessage('Item updated.');
     } catch (err) {
+      // Revert optimistic update on error
+      setList(prevList => {
+        if (!prevList) return prevList;
+        return {
+          ...prevList,
+          items: prevList.items.map(item => 
+            item.id === itemId 
+              ? { ...item, status: 'pending', version: item.version - 1 }
+              : item
+          )
+        };
+      });
       setError(err instanceof Error ? err.message : 'Failed to update item');
     } finally {
       setActiveItem(null);
     }
-  }, [id, loadList]);
+  }, [id, list]);
 
   const handleComplete = useCallback(async () => {
     if (!id) {
@@ -118,7 +144,17 @@ export default function ListDetailPage() {
   return (
     <section className="page">
       <header className="page__intro">
-        <h1>List {id ?? 'unknown'}</h1>
+        <div className="page__header">
+          <button 
+            type="button" 
+            onClick={() => navigate('/')} 
+            className="btn btn--secondary btn--back"
+            title="Back to main page"
+          >
+            ← Back
+          </button>
+          <h1>List {id ?? 'unknown'}</h1>
+        </div>
         <p>Mark items as collected or unavailable as you go.</p>
         <div className="page__summary">
           <span>Pending: {summary.pending}</span>

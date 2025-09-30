@@ -65,6 +65,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     try:
         # Get the full list data for payment processing
         from shared_code.data import get_list
+        shop_id = result.get("shop_id", "NO-TR-001")  # Default shop ID
         full_list = get_list(list_id, shop_id)
         
         publish_event(
@@ -74,7 +75,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "shopId": shop_id,
                 "status": "COMPLETED",
                 "completedAt": result.get("completedAt"),
-                "completedBy": result.get("completedBy"),
+                "completedBy": result.get("completedBy") or employee_id or "unknown",
                 "items": full_list.get("items", []) if full_list else [],
                 "title": full_list.get("title", "Unknown List") if full_list else "Unknown List"
             }

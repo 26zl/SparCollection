@@ -4,15 +4,18 @@
     "id": "Microsoft.Azure.Functions.ExtensionBundle",
     "version": "[4.*, 5.0.0)"
   },
-  "http": {
-    "routePrefix": "api",
-    "cors": {
-      "allowedOrigins": [
-        "http://localhost:5173",
-        "https://sparcollection-web-faa4hqd6hxbhaqgm.northeurope-01.azurewebsites.net",
-        "https://sparcollection-web-faasfhqd6lxhbasgn.northeurope-01.azurewebsites.net"
-      ],
-      "supportCredentials": true
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    },
+    "serviceBus": {
+      "prefetchCount": 64,
+      "messageHandlerOptions": {
+        "maxConcurrentCalls": 8,
+        "autoCompleteMessages": true,
+        "maxAutoRenewDuration": "00:05:00"
+      }
     }
-  }
+  },
+  "functionTimeout": "00:10:00"
 }

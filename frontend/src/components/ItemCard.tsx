@@ -38,11 +38,21 @@ const ItemCard = memo(function ItemCard({
         <span className="item-card__status">Status: {statusLabel[status]}</span>
       </div>
       <div className="item-card__actions">
-        <button type="button" onClick={onCollected} disabled={disabled} className="btn btn--success">
-          Collected
+        <button 
+          type="button" 
+          onClick={onCollected} 
+          disabled={disabled || status === 'collected'} 
+          className={`btn btn--success ${status === 'collected' ? 'btn--disabled' : ''}`}
+        >
+          {disabled ? 'Updating...' : 'Collected'}
         </button>
-        <button type="button" onClick={onUnavailable} disabled={disabled} className="btn btn--warning">
-          Unavailable
+        <button 
+          type="button" 
+          onClick={onUnavailable} 
+          disabled={disabled || status === 'unavailable'} 
+          className={`btn btn--warning ${status === 'unavailable' ? 'btn--disabled' : ''}`}
+        >
+          {disabled ? 'Updating...' : 'Unavailable'}
         </button>
       </div>
     </li>

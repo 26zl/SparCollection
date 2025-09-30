@@ -43,6 +43,20 @@
   gap: 0.5rem;
 }
 
+.page__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn--back {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .page__intro h1 {
   margin: 0;
 }
@@ -52,29 +66,6 @@
   color: #475569;
 }
 
-.page__status {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-
-.status-indicator {
-  font-size: 0.9em;
-  font-weight: bold;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-}
-
-.status-indicator.online {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-indicator.offline {
-  background-color: #f8d7da;
-  color: #721c24;
-}
 
 .page__actions {
   margin-top: 1rem;
@@ -274,10 +265,6 @@
   flex-wrap: wrap;
 }
 
-.page__api {
-  font-size: 0.9rem;
-  color: #475569;
-}
 
 .page__summary {
   display: flex;
@@ -310,6 +297,18 @@
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.btn--disabled {
+  background-color: #9ca3af !important;
+  color: #6b7280 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+.btn--disabled:hover {
+  background-color: #9ca3af !important;
+  color: #6b7280 !important;
 }
 
 .btn--primary {
@@ -415,5 +414,16 @@
 
   .item-card__actions {
     flex-direction: column;
+  }
+
+  .page__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .btn--back {
+    width: auto;
+    align-self: flex-start;
   }
 }
