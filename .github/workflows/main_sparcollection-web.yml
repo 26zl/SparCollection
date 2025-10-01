@@ -1,5 +1,7 @@
 name: Build & deploy frontend to Azure Web App - sparcollection-web
 
+# Denne workflowen er oppdatert for å støtte redeploy etter git reset/force-push
+# Viktig: checkout bruker fetch-depth: 0 og concurrency kansellerer eldre kjøringer
 on:
   push:
     branches: [ main ]
@@ -12,6 +14,18 @@ on:
       - 'frontend/public/**'
       - 'package.json'
   workflow_dispatch:
+    inputs:
+      redeploy:
+        description: 'Force redeploy of current main HEAD'
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false','true']
+
+# Sikrer at eldre workflow-kjøringer for samme branch blir stoppet
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   WEBAPP_NAME: 'sparcollection-web-faasfhqd6lxhbasgn'
@@ -19,17 +33,30 @@ env:
 
 jobs:
   build:
+    # Kjør bare ved push til main, eller manuelt hvis redeploy == true
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.redeploy == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22.12.0'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Print commit (for sporbarhet)
+        run: |
+          echo "SHA=${GITHUB_SHA}"
+          git log --oneline -n 5
 
       - name: Build frontend
         env:
@@ -51,6 +78,10 @@ jobs:
           path: release.zip
 
   deploy:
+    # Samme betingelse som build
+    if: >
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && inputs.redeploy == 'true')
     runs-on: ubuntu-latest
     needs: build
     steps:

@@ -8,10 +8,19 @@ on:
       - 'azure_functions/**'
       - '.github/workflows/main_sparcollection-azfunc.yml'
   workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Git ref (branch, tag, or SHA) to deploy
+        required: false
+
+concurrency:
+  group: deploy-${{ github.workflow }}-${{ github.event.inputs.target_ref || github.ref }}
+  cancel-in-progress: true
 
 env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'azure_functions'
   PYTHON_VERSION: '3.12'
+  DEPLOY_REF: ${{ github.event.inputs.target_ref || github.ref }}
 
 jobs:
   build:
@@ -22,6 +31,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_REF }}
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -36,6 +48,7 @@ jobs:
       - name: Create deployment package
         working-directory: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
         run: |
+          rm -f ../azure_functions-release.zip
           # Install dependencies to .python_packages for Azure Functions
           python -m pip install --upgrade pip
           pip install --target .python_packages/site-packages -r requirements.txt
