@@ -2,7 +2,7 @@
 
 School project prototype for managing shopping lists. Built with React (frontend) and Azure Functions (Python) backed by PostgreSQL.
 
-**⚠️ Important:** This is a school project created for educational purposes. It was never intended to be production-ready or secure for real-world use. 
+**Important:** This is a school project created for educational purposes. It was never intended to be production-ready or secure for real-world use. 
 
 ## Project Structure
 
