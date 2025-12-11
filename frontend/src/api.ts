@@ -1,32 +1,24 @@
 import { offlineManager } from './offline';
+import { getShopId } from './auth';
 
 const rawBase = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 export const API_BASE = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 
-export const getShopIdFromListId = (listId: string): string => {
-  const shopMapping: Record<string, string> = {
-    'abc123': 'NO-TR-001',
-    'def456': 'NO-TR-001', 
-    'ghi789': 'NO-OS-001',
-    'jkl012': 'NO-BG-001',
-  };
-  return shopMapping[listId] || 'NO-TR-001';
+const getConfiguredShopId = (): string => {
+  // Get shop ID from authenticated user (returns 'default-shop' if not logged in)
+  return getShopId();
 };
 
-export const getDefaultShopId = (): string => {
-  return 'NO-TR-001';
-};
-
-export const listsRoute = () => `/lists_get?shopId=${getDefaultShopId()}`;
+export const listsRoute = (shopId = getConfiguredShopId()) => `/lists_get?shopId=${encodeURIComponent(shopId)}`;
 export const listRoute = (listId: string) =>
-  `/list_get?listId=${encodeURIComponent(listId)}&shopId=${getShopIdFromListId(listId)}`;
+  `/list_get?listId=${encodeURIComponent(listId)}`;
 export const itemUpdateRoute = (listId: string, itemId: string) =>
   `/item_update/${encodeURIComponent(listId)}/${encodeURIComponent(itemId)}`;
 export const listCompleteRoute = (listId: string) =>
   `/list_complete/${encodeURIComponent(listId)}`;
-export const listCreateRoute = () => `/list_create?shopId=${getDefaultShopId()}`;
+export const listCreateRoute = (shopId = getConfiguredShopId()) => `/list_create?shopId=${encodeURIComponent(shopId)}`;
 export const listDeleteRoute = (listId: string) =>
-  `/list_delete/${encodeURIComponent(listId)}?shopId=${getShopIdFromListId(listId)}`;
+  `/list_delete/${encodeURIComponent(listId)}`;
 
 export const joinApi = (base: string, path: string): string =>
   `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
@@ -69,6 +61,7 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json() as Promise<T>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     // Queue ALL failed POST requests (offline OR backend errors)
     console.log('POST request failed - queuing update:', path);

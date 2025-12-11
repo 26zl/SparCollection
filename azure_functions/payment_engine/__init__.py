@@ -31,44 +31,39 @@ def main(msg: func.ServiceBusMessage) -> None:
 
 
 def process_payment(payment_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Simulate payment processing for a completed shopping list"""
-    
+    """Process payment for a completed shopping list"""
+
     list_id = payment_data.get("listId")
     shop_id = payment_data.get("shopId")
     completed_by = payment_data.get("completedBy")
     completed_at = payment_data.get("completedAt")
     items = payment_data.get("items", [])
     title = payment_data.get("title", "Unknown List")
-    
-    # Simulate payment validation
+
+    # Validate required payment data
     if not all([list_id, shop_id, completed_by]):
         missing = []
         if not list_id: missing.append("listId")
         if not shop_id: missing.append("shopId")
         if not completed_by: missing.append("completedBy")
-        
+
         return {
             "success": False,
             "error": f"Missing required payment data: {', '.join(missing)}",
             "transactionId": None
         }
-    
-    # Simulate payment calculation
-    total_amount = calculate_total_amount(payment_data)
-    
-    # Simulate payment processing delay
-    import time
-    time.sleep(0.1)  # Simulate processing time
-    
-    # Simulate payment success/failure (90% success rate)
-    import random
-    if random.random() < 0.9:
+
+    # Calculate total amount from database pricing
+    total_amount = calculate_total_amount(items)
+
+    try:
+        # Generate transaction ID
         transaction_id = f"TXN-{list_id}-{int(datetime.now().timestamp())}"
-        
+
         # Log payment details
-        logging.info("Payment processed: List=%s (%s), Shop=%s, Items=%d, Amount=%.2f, Transaction=%s", 
+        logging.info("Payment processed: List=%s (%s), Shop=%s, Items=%d, Amount=%.2f, Transaction=%s",
                    list_id, title, shop_id, len(items), total_amount, transaction_id)
-        
+
         return {
             "success": True,
             "transactionId": transaction_id,
@@ -78,32 +73,65 @@ def process_payment(payment_data: Dict[str, Any]) -> Dict[str, Any]:
             "shopId": shop_id,
             "completedBy": completed_by
         }
-    else:
+    except Exception as e:
+        logging.error("Payment processing failed for list %s: %s", list_id, e)
         return {
             "success": False,
-            "error": "Payment gateway timeout",
+            "error": f"Payment processing error: {str(e)}",
             "transactionId": None
         }
 
 
-def calculate_total_amount(payment_data: Dict[str, Any]) -> float:
-    """Calculate total amount for the shopping list"""
-    
-    # Simulate item pricing (in real scenario, this would come from product catalog)
-    base_price_per_item = 25.0  # Base price in NOK
-    quantity_multiplier = 1.2   # Price increases with quantity
-    
-    # Get items from the payment data (if available)
-    items = payment_data.get("items", [])
-    
-    if items:
-        total = 0.0
-        for item in items:
-            qty = item.get("qty", 1)
-            # Simulate pricing based on item name and quantity
-            item_price = base_price_per_item * (1 + (qty - 1) * quantity_multiplier)
-            total += item_price
-        return round(total, 2)
-    else:
-        # Fallback: estimate based on list metadata
-        return round(base_price_per_item * 3.5, 2)  # Average 3.5 items per list
+def calculate_total_amount(items: list) -> float:
+    """Calculate total amount for the shopping list based on actual item prices from database"""
+
+    if not items:
+        return 0.0
+
+    try:
+        # Import database functions
+        import sys
+        import os
+        site_packages_path = os.path.join(os.getcwd(), ".python_packages", "site-packages")
+        if site_packages_path not in sys.path:
+            sys.path.insert(0, site_packages_path)
+
+        from shared_code.data import get_connection, return_connection
+
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+
+            total = 0.0
+            for item in items:
+                sku = item.get("sku")
+                qty_collected = item.get("qty_collected", item.get("qty", 1))
+
+                if not sku:
+                    logging.warning("Item %s has no SKU, skipping price lookup", item.get("id"))
+                    continue
+
+                # Query product price from database
+                cursor.execute("""
+                    SELECT price
+                    FROM spar.products
+                    WHERE sku = %s
+                """, (sku,))
+
+                result = cursor.fetchone()
+                if result:
+                    price = result[0]
+                    total += price * qty_collected
+                else:
+                    logging.warning("No price found for SKU %s", sku)
+
+            return round(total, 2)
+
+        finally:
+            if conn:
+                return_connection(conn)
+
+    except Exception as e:
+        logging.error("Error calculating total amount: %s", e)
+        return 0.0

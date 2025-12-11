@@ -13,9 +13,10 @@ interface ShoppingListItem {
 
 interface ShoppingList {
   id: string;
-  title: string;
+  title?: string | null;
   status: string;
   items: ShoppingListItem[];
+  shop_id?: string | null;
   completed_at?: string;
   completed_by?: string;
 }
@@ -153,7 +154,10 @@ export default function ListDetailPage() {
           >
             ← Back
           </button>
-          <h1>List {id ?? 'unknown'}</h1>
+          <div>
+            <h1>{list?.title || `List ${id ?? 'unknown'}`}</h1>
+            {list?.shop_id && <p className="item-card__meta">Shop: {list.shop_id}</p>}
+          </div>
         </div>
         <p>Mark items as collected or unavailable as you go.</p>
         <div className="page__summary">

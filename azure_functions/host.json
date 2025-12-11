@@ -12,7 +12,6 @@
       "prefetchCount": 64,
       "messageHandlerOptions": {
         "maxConcurrentCalls": 8,
-        "autoCompleteMessages": true,
         "maxAutoRenewDuration": "00:05:00"
       }
     }

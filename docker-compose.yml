@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: spar-postgres
+    environment:
+      POSTGRES_DB: spar
+      POSTGRES_USER: spar_user
+      POSTGRES_PASSWORD: spar_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spar_user -d spar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./azure_functions
+      dockerfile: Dockerfile
+    container_name: spar-backend
+    ports:
+      - "7071:80"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DATABASE: spar
+      POSTGRES_USER: spar_user
+      POSTGRES_PASSWORD: spar_password
+      POSTGRES_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: spar-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:7071/api
+      VITE_AUTH_KEY: spar_auth_user
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

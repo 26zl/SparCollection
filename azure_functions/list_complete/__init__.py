@@ -20,6 +20,17 @@ def _parse_body(body: bytes) -> Dict[str, Any]:
     return payload
 
 
+def _validate_employee_id(employee_id: Any) -> str:
+    if employee_id is None:
+        return ""
+    if not isinstance(employee_id, (str, int, float)):
+        raise ValueError("employeeId must be a string or number")
+    employee_str = str(employee_id).strip()
+    if len(employee_str) > 120:
+        raise ValueError("employeeId must be 120 characters or fewer")
+    return employee_str
+
+
 def main(req: func.HttpRequest) -> func.HttpResponse:
     list_id = req.route_params.get("list_id")
 
@@ -41,12 +52,27 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json",
         )
 
-    employee_id = payload.get("employeeId") if isinstance(payload, dict) else None
-    if employee_id is not None:
-        employee_id = str(employee_id)
+    shop_id_param = req.params.get("shopId")
+    if shop_id_param:
+        shop_id_param = shop_id_param.strip()
+        if len(shop_id_param) > 120:
+            return func.HttpResponse(
+                body=json.dumps({"error": "shopId must be 120 characters or fewer"}, ensure_ascii=False),
+                status_code=400,
+                mimetype="application/json",
+            )
 
     try:
-        result = complete_list(list_id, employee_id)
+        employee_id = _validate_employee_id(payload.get("employeeId") if isinstance(payload, dict) else None)
+    except ValueError as exc:
+        return func.HttpResponse(
+            body=json.dumps({"error": str(exc)}, ensure_ascii=False),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    try:
+        result = complete_list(list_id, employee_id or None, shop_id_param)
     except Exception:
         logging.exception("Database error while completing list %s", list_id)
         return func.HttpResponse(
@@ -60,24 +86,31 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             body=json.dumps({"error": "not found"}, ensure_ascii=False),
             status_code=404,
             mimetype="application/json",
-        )
+    )
 
     try:
         # Get the full list data for payment processing
         from shared_code.data import get_list
-        shop_id = result.get("shop_id", "NO-TR-001")  # Default shop ID
-        full_list = get_list(list_id, shop_id)
+        shop_id = result.get("shopId") or result.get("shop_id") or shop_id_param
+        full_list = get_list(list_id, shop_id) if shop_id else get_list(list_id)
+        
+        resolved_shop_id = shop_id or (full_list.get("shop_id") if full_list else None) or "unknown"
+        resolved_title = (
+            result.get("title")
+            or (full_list.get("title") if full_list else None)
+            or f"List {list_id}"
+        )
         
         publish_event(
             {
                 "type": "list-completed",
                 "listId": list_id,
-                "shopId": shop_id,
+                "shopId": resolved_shop_id,
                 "status": "COMPLETED",
                 "completedAt": result.get("completedAt"),
                 "completedBy": result.get("completedBy") or employee_id or "unknown",
                 "items": full_list.get("items", []) if full_list else [],
-                "title": full_list.get("title", "Unknown List") if full_list else "Unknown List"
+                "title": resolved_title
             }
         )
     except Exception:

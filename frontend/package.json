@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "22.12.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "vite",
@@ -20,7 +20,7 @@
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@types/node": "^24.5.2",
-    "@types/react": "^19.1.13",
+    "@types/react": "^19.2.7",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.3",
     "eslint": "^9.36.0",

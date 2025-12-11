@@ -1,6 +1,6 @@
 // Offline support for tablets - critical requirement for case study
 interface OfflineData {
-  lists: any[];
+  lists: unknown[];
   lastSync: number;
   pendingUpdates: PendingUpdate[];
 }
@@ -8,7 +8,7 @@ interface OfflineData {
 interface PendingUpdate {
   method: 'POST';
   path: string;
-  body: any;
+  body: unknown;
   timestamp: number;
   retries: number;
 }
@@ -50,7 +50,7 @@ class OfflineManager {
   }
 
   // Store data locally for offline access
-  storeOfflineData(lists: any[]) {
+  storeOfflineData(lists: unknown[]) {
     const offlineData: OfflineData = {
       lists,
       lastSync: Date.now(),
@@ -62,7 +62,7 @@ class OfflineManager {
   }
 
   // Get offline data
-  getOfflineData(): any[] {
+  getOfflineData(): unknown[] {
     try {
       const data = localStorage.getItem(OFFLINE_STORAGE_KEY);
       if (data) {

@@ -1,164 +1,135 @@
-# Spar Collection - Shopping List Management System
+# Spar Collection
 
-A modern web application for managing shopping lists, built with React frontend and Azure Functions backend. This system allows employees to manage shopping lists with offline support and real-time updates.
+School project prototype for managing shopping lists. Built with React (frontend) and Azure Functions (Python) backed by PostgreSQL.
 
-## 🏗️ Architecture
+**⚠️ Important:** This is a school project created for educational purposes. It was never intended to be production-ready or secure for real-world use. 
 
-### Frontend
-- **Technology**: React + TypeScript + Vite
-- **Deployment**: Azure Web App
-- **URL**: https://sparcollection-web-faa4hqd6hxbhaqgm.northeurope-01.azurewebsites.net
-- **Features**: Offline support, PWA, responsive design
+## Project Structure
 
-### Backend
-- **Technology**: Azure Functions (Python)
-- **Database**: PostgreSQL (Azure Database for PostgreSQL)
-- **URL**: https://sparcollection-azfunc-fffjcpb5cphnfhac.northeurope-01.azurewebsites.net
-- **Features**: RESTful API, event publishing, payment processing
+![Project Structure](structure.png)
 
-## 📁 Project Structure
+## Quick Start
 
-```
-SparCollection/
-├── frontend/                 # React frontend application
-│   ├── src/
-│   │   ├── components/      # Reusable UI components
-│   │   │   ├── ItemCard.tsx
-│   │   │   └── CreateListForm.tsx
-│   │   ├── pages/          # Page components
-│   │   │   ├── Home.tsx
-│   │   │   └── ListDetail.tsx
-│   │   ├── api.ts          # API client functions
-│   │   └── offline.ts      # Offline support
-│   └── package.json
-├── azure_functions/         # Azure Functions backend
-│   ├── shared_code/        # Shared utilities
-│   │   ├── data.py         # Database operations
-│   │   └── servicebus.py   # Event publishing
-│   ├── lists_get/          # Get all lists endpoint
-│   ├── list_get/           # Get single list endpoint
-│   ├── item_update/        # Update item status endpoint
-│   ├── list_complete/      # Complete list endpoint
-│   ├── list_create/        # Create new list endpoint
-│   ├── list_delete/        # Delete list endpoint
-│   └── payment_engine/     # Payment processing
-└── .github/workflows/      # CI/CD pipelines
-```
+### Option 1: Docker (Recommended)
 
-## 🚀 Local Development
-
-### Standard Ports
-- **Frontend**: http://localhost:5173
-- **Backend**: http://localhost:7071
-
-### Start Commands
 ```bash
-# Backend (Terminal 1)
-cd azure_functions
-source .venv/bin/activate
-func start --port 7071
+# Start all services (PostgreSQL, Backend, Frontend)
+docker-compose up -d
 
-# Frontend (Terminal 2)  
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+```
+
+Visit http://localhost:5173 and login with your own user once created in the database.
+
+### Option 2: Manual Setup
+
+```bash
+# Backend
+cd azure_functions
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+func start
+
+# Frontend
 cd frontend
+npm install
 npm run dev
 ```
 
-## 🚀 API Endpoints
+Visit http://localhost:5173 and login with your own user once created in the database.
+
+## Authentication
+
+Authentication is handled via Azure Functions with bcrypt password hashing. Users are stored in the PostgreSQL database. Create your own user records in the `spar.users` table before logging in.
+
+## Configuration
+
+### Docker Setup
+
+No configuration needed! Docker Compose sets up everything automatically:
+- PostgreSQL database with user `spar_user` / password `spar_password`
+- Backend automatically connects to PostgreSQL
+- Frontend connects to backend at `http://localhost:7071/api`
+
+### Manual Setup
+
+Create `local.settings.json` in `azure_functions/`:
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "POSTGRES_HOST": "your-db-host",
+    "POSTGRES_DATABASE": "spar",
+    "POSTGRES_USER": "your-user",
+    "POSTGRES_PASSWORD": "your-password",
+    "POSTGRES_PORT": "5432"
+  }
+}
+```
+
+Create `.env` in `frontend/`:
+```env
+VITE_API_URL=http://localhost:7071/api
+VITE_AUTH_KEY=spar_auth_user
+```
+
+## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/lists_get?shopId=NO-TR-001` | Get all shopping lists |
-| GET | `/api/list_get?listId=abc123&shopId=NO-TR-001` | Get specific list |
+| POST | `/api/auth_login` | Authenticate user |
+| GET | `/api/lists_get?shopId=<id>` | Get all lists for a shop |
+| GET | `/api/list_get?listId=<id>` | Get specific list |
+| POST | `/api/list_create?shopId=<id>` | Create new list |
 | POST | `/api/item_update/{listId}/{itemId}` | Update item status |
-| POST | `/api/list_complete/{listId}?shopId=NO-TR-001&employeeId=emp123` | Mark list as completed |
-| POST | `/api/list_create` | Create new list |
-| DELETE | `/api/list_delete/{listId}?shopId=NO-TR-001` | Delete list |
+| POST | `/api/list_complete/{listId}` | Mark list as completed |
+| DELETE | `/api/list_delete/{listId}` | Delete list |
 
-### Service Bus Events
-- `list-created` - When a new list is created
-- `list-completed` - When a list is marked as completed
-- `item-updated` - When an item status is updated
-- `list-deleted` - When a list is deleted
+## Features
 
-## 🗄️ Database Schema
+- User login with shop assignment
+- Create and manage shopping lists
+- Mark items as collected or unavailable
+- Offline support with automatic sync
+- Real-time updates
+- Payment processing integration
 
-### spar.lists Table
-- `id` (VARCHAR) - Primary key
-- `shop_id` (VARCHAR) - Shop identifier
-- `status` (VARCHAR) - active/completed
-- `created_at` (TIMESTAMP) - Creation timestamp
-- `completed_at` (TIMESTAMP) - Completion timestamp
-- `completed_by` (VARCHAR) - Employee ID who completed
+## Docker Commands
 
-### spar.list_items Table
-- `id` (VARCHAR) - Primary key
-- `list_id` (VARCHAR) - Foreign key to lists
-- `sku` (VARCHAR) - Item SKU
-- `name` (VARCHAR) - Item name
-- `qty_requested` (INTEGER) - Requested quantity
-- `qty_collected` (INTEGER) - Collected quantity
-- `status` (VARCHAR) - pending/collected/unavailable
-- `version` (INTEGER) - Version for optimistic locking
+```bash
+# Start services
+docker-compose up -d
 
-## 🛠️ Development
+# View logs
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f postgres
 
-### Prerequisites
-- Node.js 22.12.0
-- Python 3.10+
-- Azure Functions Core Tools
-- Azure CLI
-- PostgreSQL client libraries (psycopg2)
+# Restart a service
+docker-compose restart backend
 
-### Local Development
+# Stop services
+docker-compose down
 
-1. **Start Backend (Azure Functions)**
-   ```bash
-   cd azure_functions
-   source ../.venv/bin/activate
-   func start
-   ```
+# Remove all data (including database)
+docker-compose down -v
 
-2. **Start Frontend**
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
+# Rebuild after code changes
+docker-compose up -d --build
+```
 
-3. **Access Application**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:7071
+## Notes
 
-## 📝 Features
-
-- ✅ Create and manage shopping lists
-- ✅ Add items with quantities
-- ✅ Mark items as collected or unavailable
-- ✅ Complete lists
-- ✅ Delete lists
-- ✅ Real-time updates
-- ✅ Responsive design
-- ✅ Offline support (PWA)
-- ✅ Event publishing for integrations
-- ✅ Payment processing simulation
-- ✅ Dynamic shop ID determination
-- ✅ Optimistic locking for concurrent updates
-
-## 🎯 Case Study Requirements
-
-This project fulfills the requirements for the Spar Collection case study:
-
-### Functional Requirements
-- ✅ Web-based application
-- ✅ Tablets receive lists to be collected
-- ✅ Employees can mark items as collected or unavailable
-- ✅ Lists are transferred to payment engine when completed
-- ✅ Offline support is implemented
-
-### Non-Functional Requirements
-- ✅ Handles 200 concurrent users
-- ✅ Processes 10,000 lists per day
-- ✅ Average list size: 500kb
-- ✅ Offline support with PWA
-- ✅ High SLA with Azure infrastructure
-- ✅ Queue-based list delivery via Service Bus
+- This is a **school project** - not production-ready
+- Security and production best practices were not the primary focus
+- Authentication uses bcrypt for password hashing
+- Payment engine uses database product pricing
+- Offline data is cached in browser localStorage
+- User sessions stored in localStorage (no JWT/session tokens)
+- Docker Compose includes PostgreSQL, backend, and frontend
+- Database schema is automatically loaded on first run

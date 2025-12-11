@@ -6,8 +6,10 @@ import CreateListForm from '../components/CreateListForm';
 
 interface ShoppingList {
   id: string;
-  title: string;
+  title?: string | null;
   status: string;
+  shop_id?: string | null;
+  items?: unknown[];
 }
 
 export default function HomePage() {
@@ -28,13 +30,13 @@ export default function HomePage() {
           offlineManager.storeOfflineData(data);
         } else {
           // Use offline data
-          const offlineData = offlineManager.getOfflineData();
+          const offlineData = offlineManager.getOfflineData() as ShoppingList[];
           setLists(offlineData);
           setError('Offline mode - showing cached data');
         }
       } catch (err) {
         // Fallback to offline data
-        const offlineData = offlineManager.getOfflineData();
+        const offlineData = offlineManager.getOfflineData() as ShoppingList[];
         if (offlineData.length > 0) {
           setLists(offlineData);
           setError('Offline mode - showing cached data');
@@ -60,12 +62,12 @@ export default function HomePage() {
           setLists(data);
           offlineManager.storeOfflineData(data);
         } else {
-          const offlineData = offlineManager.getOfflineData();
+          const offlineData = offlineManager.getOfflineData() as ShoppingList[];
           setLists(offlineData);
           setError('Offline mode - showing cached data');
         }
       } catch (err) {
-        const offlineData = offlineManager.getOfflineData();
+        const offlineData = offlineManager.getOfflineData() as ShoppingList[];
         if (offlineData.length > 0) {
           setLists(offlineData);
           setError('Offline mode - showing cached data');
@@ -111,8 +113,11 @@ export default function HomePage() {
             <li key={list.id} className="item-card">
               <div className="item-card__header">
                 <div>
-                  <h2>{list.title}</h2>
-                  <p className="item-card__meta">List ID: {list.id}</p>
+                  <h2>{list.title || `List ${list.id}`}</h2>
+                  <p className="item-card__meta">
+                    List ID: {list.id}
+                    {list.shop_id && <> · Shop: {list.shop_id}</>}
+                  </p>
                 </div>
                 <span className="item-card__status">Status: {list.status}</span>
               </div>

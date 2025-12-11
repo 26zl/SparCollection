@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Green circle -->
+  <circle cx="100" cy="70" r="50" fill="none" stroke="#00843D" stroke-width="10"/>
+
+  <!-- Green tree/triangle -->
+  <path d="M100 40 L130 90 L70 90 Z" fill="#00843D"/>
+  <rect x="92" y="85" width="16" height="15" fill="#00843D"/>
+
+  <!-- Red SPAR text box -->
+  <rect x="50" y="140" width="100" height="35" fill="#E31E24"/>
+
+  <!-- White SPAR text -->
+  <text x="100" y="165" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">SPAR</text>
+</svg>

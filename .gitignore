@@ -54,6 +54,10 @@ frontend/.env.production.local
 *.swp
 *.swo
 *~
+*claude/
+
+# Azure Functions
+.funcignore
 
 # OS
 .DS_Store
