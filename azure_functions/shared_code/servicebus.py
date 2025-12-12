@@ -49,6 +49,6 @@ def publish_to_payment_queue(payload: Dict[str, Any]) -> None:
         with ServiceBusClient.from_connection_string(_CONNECTION, connection_timeout=2) as client:
             with client.get_queue_sender(queue_name="payment-queue") as sender:
                 sender.send_messages(ServiceBusMessage(json.dumps(payload, ensure_ascii=False)))
-                logging.info("Successfully sent list to payment queue: %s", payload.get("listId"))
+                logging.info("Successfully sent list to payment queue.")
     except Exception as e:
         logging.warning("Failed to send to payment queue (non-critical): %s", str(e))
