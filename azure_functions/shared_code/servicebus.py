@@ -9,6 +9,18 @@ _CONNECTION: Optional[str] = os.getenv("SERVICEBUS_CONNECTION")
 _QUEUE_NAME: str = os.getenv("SERVICEBUS_QUEUE_NAME", "list-updates")
 
 
+def _redact_payload_for_logging(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a shallow copy of payload with sensitive fields redacted for logging."""
+    sensitive_keys = {"employeeId", "completedBy"}
+    if not isinstance(payload, dict):
+        return payload
+    redacted = payload.copy()
+    for key in sensitive_keys:
+        if key in redacted:
+            redacted[key] = "***REDACTED***"
+    return redacted
+
+
 def publish_event(payload: Dict[str, Any]) -> None:
     if not _CONNECTION:
         logging.info("SERVICEBUS_CONNECTION missing; skipping publish")
@@ -29,12 +41,18 @@ def publish_event(payload: Dict[str, Any]) -> None:
                     publish_to_payment_queue(payload)
                     
     except ImportError:
-        logging.warning("azure-servicebus not available; logging event instead: %s", json.dumps(payload))
+        logging.warning(
+            "azure-servicebus not available; logging event instead: %s", 
+            json.dumps(_redact_payload_for_logging(payload), ensure_ascii=False)
+        )
     except Exception as e:
         # Don't let Service Bus errors slow down the main operation
         logging.warning("Service Bus publish failed (non-critical): %s", str(e))
         # Just log the event instead of failing
-        logging.info("Event logged instead: %s", json.dumps(payload))
+        logging.info(
+            "Event logged instead: %s", 
+            json.dumps(_redact_payload_for_logging(payload), ensure_ascii=False)
+        )
 
 
 def publish_to_payment_queue(payload: Dict[str, Any]) -> None:
