@@ -22,7 +22,7 @@ def publish_event(payload: Dict[str, Any]) -> None:
         with ServiceBusClient.from_connection_string(_CONNECTION, connection_timeout=2) as client:
             with client.get_queue_sender(queue_name=_QUEUE_NAME) as sender:
                 sender.send_messages(ServiceBusMessage(json.dumps(payload, ensure_ascii=False)))
-                logging.info("Successfully published event to Service Bus: %s", payload.get("type", "unknown"))
+                logging.info("Successfully published event to Service Bus.")
                 
                 # If this is a list-completed event, also send to payment queue
                 if payload.get("type") == "list-completed":
