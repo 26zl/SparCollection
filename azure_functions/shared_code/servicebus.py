@@ -9,6 +9,19 @@ _CONNECTION: Optional[str] = os.getenv("SERVICEBUS_CONNECTION")
 _QUEUE_NAME: str = os.getenv("SERVICEBUS_QUEUE_NAME", "list-updates")
 
 
+def sanitize_payload_for_logging(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Redact or remove sensitive fields before logging.
+    """
+    # Make a shallow copy to avoid mutating the original payload
+    sanitized = dict(payload)
+    # Redact known sensitive fields
+    for sensitive_field in ["employeeId", "employee_id", "completedBy"]:
+        if sensitive_field in sanitized:
+            sanitized[sensitive_field] = "***REDACTED***"
+    return sanitized
+
+
 def publish_event(payload: Dict[str, Any]) -> None:
     if not _CONNECTION:
         logging.info("SERVICEBUS_CONNECTION missing; skipping publish")
@@ -34,7 +47,10 @@ def publish_event(payload: Dict[str, Any]) -> None:
         # Don't let Service Bus errors slow down the main operation
         logging.warning("Service Bus publish failed (non-critical): %s", str(e))
         # Just log the event instead of failing
-        logging.info("Event logged instead: %s", json.dumps(payload))
+        logging.info(
+            "Event logged instead: %s",
+            json.dumps(sanitize_payload_for_logging(payload))
+        )
 
 
 def publish_to_payment_queue(payload: Dict[str, Any]) -> None:
